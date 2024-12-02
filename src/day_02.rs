@@ -15,33 +15,55 @@ fn parse_input_data(data: &str) -> IResult<&str, Vec<Vec<i64>>> {
     )(data)
 }
 
+fn is_report_safe(report: &[i64]) -> bool {
+    if report.len() < 2 {
+        panic!("Invalid report length: {}", report.len());
+    }
+    use std::cmp::Ordering;
+
+    let increasing = match report[0].cmp(&report[1]) {
+        Ordering::Less => true,
+        Ordering::Greater => false,
+        Ordering::Equal => return false, // quick exit
+    };
+
+    report.windows(2).all(|window| {
+        let diff = window[1] - window[0];
+        // if the direction is the same, and the difference is not too big or null
+        diff != 0 && (diff > 0) == increasing && diff.abs() <= 3
+    })
+}
+
 pub fn day_02_part_1(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
 
     data.iter()
-        .map(|report| {
-            if report.len() < 2 {
-                panic!("Invalid report length: {}", report.len());
-            }
-            use std::cmp::Ordering;
-
-            let increasing = match report[0].cmp(&report[1]) {
-                Ordering::Less => true,
-                Ordering::Greater => false,
-                Ordering::Equal => return 0, // quick exit
-            };
-
-            report.windows(2).all(|window| {
-                let diff = window[1] - window[0];
-                // if the direction is the same, and the difference is not too big or null
-                diff != 0 && (diff > 0) == increasing && diff.abs() <= 3
-            }) as i64
-        })
-        .sum::<i64>()
+        .map(|report| is_report_safe(report) as i64)
+        .sum()
 }
 
 pub fn day_02_part_2(data: &str) -> i64 {
-    42
+    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
+
+    data.iter()
+        .map(|report| {
+            // quick exit
+            if is_report_safe(report) {
+                //println!("safe: {:?}", report);
+                return 1;
+            }
+            //println!("checking: {:?}", report);
+            for index_to_skip in 0..report.len() {
+                let new_report = [&report[..index_to_skip], &report[index_to_skip + 1..]].concat();
+                //println!("{:?}", new_report);
+                if is_report_safe(&new_report) {
+                    return 1;
+                }
+            }
+            //println!("unsafe: {:?}", report);
+            0
+        })
+        .sum()
 }
 
 #[cfg(test)]
