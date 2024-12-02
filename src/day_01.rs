@@ -16,7 +16,7 @@ fn parse_input_data(data: &str) -> IResult<&str, Vec<(i64, i64)>> {
     )(data)
 }
 
-pub fn day_1_part_1(data: &str) -> i64 {
+pub fn day_01_part_1(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
 
     let mut left_list = data.iter().map(|(a, _)| *a).collect::<Vec<i64>>();
@@ -34,7 +34,7 @@ pub fn day_1_part_1(data: &str) -> i64 {
     difference
 }
 
-pub fn day_1_part_2(data: &str) -> i64 {
+pub fn day_01_part_2(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
 
     // Create a 100 000 sized array, that's about 781KB
@@ -72,12 +72,12 @@ mod tests {
 3   3";
 
     #[test]
-    fn test_day_1_part_1() {
-        assert_eq!(day_1_part_1(EXAMPLE), 11);
+    fn test_day_01_part_1() {
+        assert_eq!(day_01_part_1(EXAMPLE), 11);
     }
 
     #[test]
-    fn test_day_1_part_2() {
-        assert_eq!(day_1_part_2(EXAMPLE), 31);
+    fn test_day_01_part_2() {
+        assert_eq!(day_01_part_2(EXAMPLE), 31);
     }
 }

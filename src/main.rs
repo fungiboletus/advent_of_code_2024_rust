@@ -22,6 +22,23 @@ macro_rules! execute_day {
     };
 }
 
+use paste::paste;
+
+macro_rules! execute_days {
+    ($($day:literal),*) => {
+        $(
+            paste! {
+                execute_day!(
+                    $day,
+                    [<day_ $day>]::[<day_ $day _part_1>],
+                    [<day_ $day>]::[<day_ $day _part_2>]
+                );
+            }
+        )*
+    };
+}
+
 fn main() {
-    execute_day!("01", day_01::day_1_part_1, day_01::day_1_part_2);
+    //execute_day!("01", day_01::day_1_part_1, day_01::day_1_part_2);
+    execute_days!("01");
 }
