@@ -1,4 +1,5 @@
 mod day_01;
+mod day_02;
 
 fn execute_day<F, G>(day: &str, data: &str, part_1: F, part_2: G)
 where
@@ -40,5 +41,5 @@ macro_rules! execute_days {
 
 fn main() {
     //execute_day!("01", day_01::day_1_part_1, day_01::day_1_part_2);
-    execute_days!("01");
+    execute_days!("01", "02");
 }
