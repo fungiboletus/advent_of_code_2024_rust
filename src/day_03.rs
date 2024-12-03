@@ -4,9 +4,14 @@
     The first part can be solved trivially with a regex, but we will do the parsing using nom.
 
     It's a bit hell because nom doesn't have a take_until working on parsers.
+    So I made my own utility function, name parse_with_skip_up_to_n.
+    Such a beautiful function name and what a wonderful signature.
+
+    I also didn't notice the use of a different example in part 2.
 */
 
 use nom::{
+    branch::alt,
     bytes::complete::{tag, take, take_while_m_n},
     combinator::map,
     error::ParseError,
@@ -14,6 +19,16 @@ use nom::{
     sequence::{preceded, tuple},
     IResult, InputIter, InputLength, InputTake, Parser, ToUsize,
 };
+
+#[derive(Debug, PartialEq)]
+struct MulInstruction(u16, u16);
+
+#[derive(Debug, PartialEq)]
+enum Instruction {
+    Mul(MulInstruction),
+    Do,
+    Dont,
+}
 
 fn mul_number(input: &str) -> IResult<&str, u16> {
     map(
@@ -26,11 +41,19 @@ fn mul_number(input: &str) -> IResult<&str, u16> {
     )(input)
 }
 
-fn parse_mul(input: &str) -> IResult<&str, (u16, u16)> {
+fn parse_mul(input: &str) -> IResult<&str, Instruction> {
     map(
         tuple((tag("mul("), mul_number, tag(","), mul_number, tag(")"))),
-        |(_, a, _, b, _)| (a, b),
+        |(_, a, _, b, _)| Instruction::Mul(MulInstruction(a, b)),
     )(input)
+}
+
+fn parse_do(input: &str) -> IResult<&str, Instruction> {
+    map(tag("do()"), |_| Instruction::Do)(input)
+}
+
+fn parse_dont(input: &str) -> IResult<&str, Instruction> {
+    map(tag("don't()"), |_| Instruction::Dont)(input)
 }
 
 /**
@@ -67,25 +90,61 @@ where
     }
 }
 
-fn parse_input_data(input: &str) -> IResult<&str, Vec<(u16, u16)>> {
-    many0(parse_with_skip_up_to_n(1024_usize, parse_mul))(input)
+fn parse_instruction(input: &str) -> IResult<&str, Instruction> {
+    alt((parse_mul, parse_do, parse_dont))(input)
+}
+
+fn parse_input_data(input: &str) -> IResult<&str, Vec<Instruction>> {
+    many0(parse_with_skip_up_to_n(1024_usize, parse_instruction))(input)
 }
 
 pub fn day_03_part_1(data: &str) -> i64 {
-    let (_, muls) = parse_input_data(data).expect("Failed to parse input data");
+    let (_, instructions) = parse_input_data(data).expect("Failed to parse input data");
 
-    muls.iter().map(|(a, b)| (*a as i64) * (*b as i64)).sum()
+    instructions
+        .iter()
+        .map(|instruction| match instruction {
+            Instruction::Mul(MulInstruction(a, b)) => (*a as i64) * (*b as i64),
+            _ => 0,
+        })
+        .sum()
 }
 
 pub fn day_03_part_2(data: &str) -> i64 {
-    42
+    let (_, instructions) = parse_input_data(data).expect("Failed to parse input data");
+
+    let mut mul_enabled = true;
+
+    instructions
+        .iter()
+        .map(|instruction| match instruction {
+            Instruction::Mul(MulInstruction(a, b)) => {
+                if mul_enabled {
+                    (*a as i64) * (*b as i64)
+                } else {
+                    0
+                }
+            }
+            Instruction::Do => {
+                mul_enabled = true;
+                0
+            }
+            Instruction::Dont => {
+                mul_enabled = false;
+                0
+            }
+        })
+        .sum()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))";
+    const EXAMPLE_PART_1: &str =
+        "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))";
+    const EXAMPLE_PART_2: &str =
+        "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
 
     #[test]
     fn test_mul_number() {
@@ -99,20 +158,73 @@ mod tests {
 
     #[test]
     fn test_parse_mul() {
-        assert_eq!(parse_mul("mul(123,456)"), Ok(("", (123, 456))));
-        assert_eq!(parse_mul("mul(123,456)"), Ok(("", (123, 456))));
+        assert_eq!(
+            parse_mul("mul(123,456)"),
+            Ok(("", Instruction::Mul(MulInstruction(123, 456))))
+        );
+        assert_eq!(
+            parse_mul("mul(123,456)"),
+            Ok(("", Instruction::Mul(MulInstruction(123, 456))))
+        );
         assert!(parse_mul("mul(123,456").is_err());
+    }
+
+    #[test]
+    fn test_parse_do() {
+        assert_eq!(parse_do("do()"), Ok(("", Instruction::Do)));
+        assert!(parse_do("don't()").is_err());
+    }
+
+    #[test]
+    fn test_parse_dont() {
+        assert_eq!(parse_dont("don't()"), Ok(("", Instruction::Dont)));
+        assert!(parse_dont("do()").is_err());
+    }
+
+    #[test]
+    fn test_parse_instruction() {
+        assert_eq!(
+            parse_instruction("mul(123,456)"),
+            Ok(("", Instruction::Mul(MulInstruction(123, 456))))
+        );
+        assert_eq!(parse_instruction("do()"), Ok(("", Instruction::Do)));
+        assert_eq!(parse_instruction("don't()"), Ok(("", Instruction::Dont)));
     }
 
     #[test]
     fn test_parse_input_data() {
         assert_eq!(
             parse_input_data("mul(123,456)"),
-            Ok(("", (vec![(123, 456)])))
+            Ok(("", (vec![Instruction::Mul(MulInstruction(123, 456))])))
         );
         assert_eq!(
             parse_input_data("xmul(123,456)%&mul(123,456)("),
-            Ok(("(", (vec![(123, 456), (123, 456)])))
+            Ok((
+                "(",
+                (vec![
+                    Instruction::Mul(MulInstruction(123, 456)),
+                    Instruction::Mul(MulInstruction(123, 456))
+                ])
+            ))
+        );
+        assert_eq!(
+            parse_input_data("adon't()b"),
+            Ok(("b", (vec![Instruction::Dont])))
+        );
+        assert_eq!(
+            parse_input_data("adon't()bdo()b"),
+            Ok(("b", (vec![Instruction::Dont, Instruction::Do])))
+        );
+        assert_eq!(
+            parse_input_data("mul(123,456)adon't()bdo()b"),
+            Ok((
+                "b",
+                (vec![
+                    Instruction::Mul(MulInstruction(123, 456)),
+                    Instruction::Dont,
+                    Instruction::Do
+                ])
+            ))
         );
     }
 
@@ -121,11 +233,12 @@ mod tests {
         assert_eq!(day_03_part_1("mul(2,4)"), 8);
         assert_eq!(day_03_part_1("xmul(2,4)"), 8);
         assert_eq!(day_03_part_1("xmul(2,4)%&mul(3,7)"), 29);
-        assert_eq!(day_03_part_1(EXAMPLE), 161);
+        assert_eq!(day_03_part_1(EXAMPLE_PART_1), 161);
     }
 
     #[test]
     fn test_day_03_part_2() {
-        assert_eq!(day_03_part_2(EXAMPLE), 42);
+        assert_eq!(day_03_part_2(EXAMPLE_PART_1), 161);
+        assert_eq!(day_03_part_2(EXAMPLE_PART_2), 48);
     }
 }
