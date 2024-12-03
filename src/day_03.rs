@@ -1,10 +1,11 @@
 /*
     The virtual machine is coming!
 
-    The first part can be solved trivially with a regex, but we will do the parsing using nom.
+    The parsing can be solved trivially with a regex, but we will do the parsing using nom.
 
-    It's a bit hell because nom doesn't have a take_until working on parsers.
-    So I made my own utility function, name parse_with_skip_up_to_n.
+    It's a bit hell because nom doesn't have a take_until working on parsers, only on a tag.
+
+    So I made my own utility function, name parse_and_skip_up_to_n.
     Such a beautiful function name and what a wonderful signature.
 
     I also didn't notice the use of a different example in part 2.
@@ -59,7 +60,7 @@ fn parse_dont(input: &str) -> IResult<&str, Instruction> {
 /**
  * Complete overkill parser, but it works.
  */
-fn parse_with_skip_up_to_n<C, F, Input, Output, Error>(
+fn parse_and_skip_up_to_n<C, F, Input, Output, Error>(
     up_to: C,
     mut parser: F,
 ) -> impl FnMut(Input) -> IResult<Input, Output, Error>
@@ -95,7 +96,7 @@ fn parse_instruction(input: &str) -> IResult<&str, Instruction> {
 }
 
 fn parse_input_data(input: &str) -> IResult<&str, Vec<Instruction>> {
-    many0(parse_with_skip_up_to_n(1024_usize, parse_instruction))(input)
+    many0(parse_and_skip_up_to_n(1024_usize, parse_instruction))(input)
 }
 
 pub fn day_03_part_1(data: &str) -> i64 {
@@ -114,27 +115,25 @@ pub fn day_03_part_2(data: &str) -> i64 {
     let (_, instructions) = parse_input_data(data).expect("Failed to parse input data");
 
     let mut mul_enabled = true;
+    let mut sum = 0;
 
     instructions
         .iter()
-        .map(|instruction| match instruction {
+        .for_each(|instruction| match instruction {
             Instruction::Mul(MulInstruction(a, b)) => {
                 if mul_enabled {
-                    (*a as i64) * (*b as i64)
-                } else {
-                    0
+                    sum += (*a as i64) * (*b as i64);
                 }
             }
             Instruction::Do => {
                 mul_enabled = true;
-                0
             }
             Instruction::Dont => {
                 mul_enabled = false;
-                0
             }
-        })
-        .sum()
+        });
+
+    sum
 }
 
 #[cfg(test)]
