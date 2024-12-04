@@ -1,4 +1,19 @@
 {
   "editor.formatOnSave": true,
   "rust-analyzer.check.command": "clippy",
+  "workbench.colorCustomizations": {
+    "commandCenter.border": "#e7e7e799",
+    "titleBar.activeBackground": "#006400",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#00640099",
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "statusBar.background": "#8B0000",
+    "statusBar.foreground": "#eee1a8",
+    // left bar with the icons
+    //"activityBar.background": "#006400",
+    "activityBar.foreground": "#eee1a8",
+    "statusBarItem.remoteBackground": "#006400",
+    "statusBarItem.remoteForeground": "#eee1a8",
+  },
+  "peacock.color": "#006400",
 }
