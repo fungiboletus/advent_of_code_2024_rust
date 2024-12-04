@@ -33,7 +33,7 @@ fn parse_input_data(data: &str) -> IResult<&str, Array2<char>> {
 
 // Infortunately, the ndarray in rust doesn't take a offset/k parameter
 // like with numpy. so we have to play with slices.
-fn diag_with_offset(grid: &Array2<char>, offset: isize) -> String {
+/*fn diag_with_offset(grid: &Array2<char>, offset: isize) -> String {
     match offset {
         0 => grid.diag().iter().collect::<String>(),
         _ if offset > 0 => grid
@@ -93,19 +93,72 @@ fn extract_strings(grid: &Array2<char>, min_string_size: usize) -> Vec<String> {
     }
 
     strings
-}
+}*/
 
 pub fn day_04_part_1(data: &str) -> i64 {
     let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
 
-    let strings = extract_strings(&grid, 4);
+    /*let strings = extract_strings(&grid, 4);
 
     strings
         .iter()
         // Small trick, we look at the reversed trick so we don't
         // have to do a lot of matrix rotations and flips and so on.
         .map(|string| string.matches("XMAS").count() + string.matches("SAMX").count())
-        .sum::<usize>() as i64
+        .sum::<usize>() as i64*/
+
+    (grid
+        .windows((1, 4))
+        .into_iter()
+        .filter(|w| {
+            let a = w[(0, 0)];
+            let b = w[(0, 1)];
+            let c = w[(0, 2)];
+            let d = w[(0, 3)];
+
+            (a == 'X' && b == 'M' && c == 'A' && d == 'S')
+                || (a == 'S' && b == 'A' && c == 'M' && d == 'X')
+        })
+        .count()
+        + grid
+            .windows((4, 1))
+            .into_iter()
+            .filter(|w| {
+                let a = w[(0, 0)];
+                let b = w[(1, 0)];
+                let c = w[(2, 0)];
+                let d = w[(3, 0)];
+
+                (a == 'X' && b == 'M' && c == 'A' && d == 'S')
+                    || (a == 'S' && b == 'A' && c == 'M' && d == 'X')
+            })
+            .count()
+        + grid
+            .windows((4, 4))
+            .into_iter()
+            .map(|w| {
+                /*
+                 * a . . b
+                 * . c d .
+                 * . e f .
+                 * g . . h
+                 */
+                let a = w[(0, 0)];
+                let b = w[(0, 3)];
+                let c = w[(1, 1)];
+                let d = w[(1, 2)];
+                let e = w[(2, 1)];
+                let f = w[(2, 2)];
+                let g = w[(3, 0)];
+                let h = w[(3, 3)];
+
+                (((a == 'X' && c == 'M' && f == 'A' && h == 'S')
+                    || (a == 'S' && c == 'A' && f == 'M' && h == 'X')) as usize)
+                    + (((b == 'X' && d == 'M' && e == 'A' && g == 'S')
+                        || (b == 'S' && d == 'A' && e == 'M' && g == 'X'))
+                        as usize)
+            })
+            .sum::<usize>()) as i64
 }
 
 pub fn day_04_part_2(data: &str) -> i64 {
