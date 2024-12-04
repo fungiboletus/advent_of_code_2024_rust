@@ -10,8 +10,8 @@
 
     Could have done part 1 like this to be honest.
 */
-use ndarray::prelude::*;
-use ndarray::{Array2, Axis};
+//use ndarray::prelude::*;
+use ndarray::{Array2 /*,  Axis*/};
 use nom::{
     character::complete::{line_ending, one_of},
     combinator::map,
