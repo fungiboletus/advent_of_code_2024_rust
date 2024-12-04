@@ -7,6 +7,8 @@
     It took some time to read the documentation and find what to do.
 
     Second part was very easy and I did quick and dirty.
+
+    Could have done part 1 like this to be honest.
 */
 use ndarray::prelude::*;
 use ndarray::{Array2, Axis};
