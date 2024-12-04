@@ -5,6 +5,8 @@
     the ndarray and fancy operations to work with the grid.
 
     It took some time to read the documentation and find what to do.
+
+    Second part was very easy and I did quick and dirty.
 */
 use ndarray::prelude::*;
 use ndarray::{Array2, Axis};
@@ -105,7 +107,58 @@ pub fn day_04_part_1(data: &str) -> i64 {
 }
 
 pub fn day_04_part_2(data: &str) -> i64 {
-    42
+    let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
+
+    grid.windows((3, 3))
+        .into_iter()
+        .filter(|w| {
+            let middle = w[(1, 1)];
+            let top_left = w[(0, 0)];
+            let top_right = w[(0, 2)];
+            let bottom_left = w[(2, 0)];
+            let bottom_right = w[(2, 2)];
+
+            // Could be more optimised but well… it's boring.
+            // Hopefully the compiler will notice since
+            // we extracted the values into local variables first.
+            (middle == 'A')
+                && (/*
+                M . S
+                . A .
+                M . S
+                */(top_left == 'M'
+            && top_right == 'S'
+            && bottom_left == 'M'
+            && bottom_right == 'S')
+        /*
+        S . M
+        . A .
+        S . M
+         */
+        || (top_left == 'S'
+            && top_right == 'M'
+            && bottom_left == 'S'
+            && bottom_right == 'M')
+        /*
+        M . M
+        . A .
+        S . S
+         */
+        || (top_left == 'M'
+            && top_right == 'M'
+            && bottom_left == 'S'
+            && bottom_right == 'S')
+        /*
+        S . S
+        . A .
+        M . M
+         */
+        || (top_left == 'S'
+            && top_right == 'S'
+            && bottom_left == 'M'
+            && bottom_right == 'M'))
+        })
+        .count() as i64
 }
 
 #[cfg(test)]
@@ -129,6 +182,17 @@ SAXAMASAAA
 MAMMMXMMMM
 MXMXAXMASX";
 
+    const EXAMPLE_PART_2: &str = ".M.S......
+..A..MSMS.
+.M.S.MAA..
+..A.ASMSM.
+.M.S.M....
+..........
+S.S.S.S.S.
+.A.A.A.A..
+M.M.M.M.M.
+..........";
+
     #[test]
     fn test_day_04_part_1() {
         assert_eq!(day_04_part_1("01\n23\n45\n67"), 0);
@@ -141,6 +205,7 @@ MXMXAXMASX";
 
     #[test]
     fn test_day_04_part_2() {
-        assert_eq!(day_04_part_2(EXAMPLE_BIG), 42);
+        assert_eq!(day_04_part_2(EXAMPLE_PART_2), 9);
+        assert_eq!(day_04_part_2(EXAMPLE_BIG), 9);
     }
 }
