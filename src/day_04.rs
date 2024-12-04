@@ -1,5 +1,10 @@
 /*
-    Comments.
+    Day 04 is an easy day with a grid/matrix of characters.
+
+    However, I hate working with indexes and I decided to use
+    the ndarray and fancy operations to work with the grid.
+
+    It took some time to read the documentation and find what to do.
 */
 use ndarray::prelude::*;
 use ndarray::{Array2, Axis};
@@ -46,35 +51,39 @@ fn extract_strings(grid: &Array2<char>, min_string_size: usize) -> Vec<String> {
 
     let max_strings = 3 * (nb_rows + nb_cols) - 2;
     let mut strings = Vec::with_capacity(max_strings);
-    println!("max_strings: {}", max_strings);
 
     // row by row
-    for row in grid.rows() {
-        println!("row: {:?}", row);
-        let row_string = row.iter().collect::<String>();
-        println!("row_string: {}", row_string);
-        strings.push(row_string);
+    if nb_rows >= min_string_size {
+        for row in grid.rows() {
+            strings.push(row.iter().collect::<String>());
+        }
     }
 
     // col by col
-    for col in grid.columns() {
-        println!("col: {:?}", col);
-        let col_string = col.iter().collect::<String>();
-        println!("col_string: {}", col_string);
-        strings.push(col_string);
+    if nb_cols >= min_string_size {
+        for col in grid.columns() {
+            strings.push(col.iter().collect::<String>());
+        }
     }
 
+    // Quick shortcut if the grid is too small
+    if nb_rows * nb_rows + nb_cols * nb_cols < min_string_size * min_string_size {
+        return strings;
+    }
+
+    // The diagonals, in both directions
+    // We rotate the grid by 90 degrees to reuse the same code
     let mut rotate_90_grid = grid.clone();
     rotate_90_grid.swap_axes(0, 1);
     rotate_90_grid.invert_axis(Axis(0));
 
     strings.push(diag_with_offset(grid, 0));
     strings.push(diag_with_offset(&rotate_90_grid, 0));
-    for offset in 1..nb_rows {
+    for offset in 1..nb_rows.saturating_sub(min_string_size - 1) {
         strings.push(diag_with_offset(grid, offset as isize));
         strings.push(diag_with_offset(&rotate_90_grid, -(offset as isize)));
     }
-    for offset in 1..nb_cols {
+    for offset in 1..nb_cols.saturating_sub(min_string_size - 1) {
         strings.push(diag_with_offset(grid, -(offset as isize)));
         strings.push(diag_with_offset(&rotate_90_grid, offset as isize));
     }
@@ -84,68 +93,15 @@ fn extract_strings(grid: &Array2<char>, min_string_size: usize) -> Vec<String> {
 
 pub fn day_04_part_1(data: &str) -> i64 {
     let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
-    println!("normal:\n{:?}", grid);
-
-    /*println!("diag 0: {:?}", diag_with_offset(&grid, 0));
-    println!("diag 1: {:?}", diag_with_offset(&grid, 1));
-    println!("diag -1: {:?}", diag_with_offset(&grid, -1));
-    println!("diag 2: {:?}", diag_with_offset(&grid, 2));
-    println!("diag -2: {:?}", diag_with_offset(&grid, -2));
-    println!("diag 3: {:?}", diag_with_offset(&grid, 3));
-    println!("diag -3: {:?}", diag_with_offset(&grid, -3));*/
 
     let strings = extract_strings(&grid, 4);
-    println!("strings: {:?}", strings);
 
     strings
         .iter()
+        // Small trick, we look at the reversed trick so we don't
+        // have to do a lot of matrix rotations and flips and so on.
         .map(|string| string.matches("XMAS").count() + string.matches("SAMX").count())
         .sum::<usize>() as i64
-
-    // diagonal of grid
-    /*let diagonal = grid.diag();
-    println!("diagonal:\n{:?}", diagonal);
-
-    // diagonal offset 1
-    let tmp = grid.slice(s![1.., ..]);
-    let diagonal_offset_1 = tmp.diag();
-    println!("diagonal offset 1:\n{:?}", diagonal_offset_1);
-
-    // diagonal offset -1
-    let tmp = grid.slice(s![.., 1..]);
-    let diagonal_offset_minus_1 = tmp.diag();
-    println!("diagonal offset -1:\n{:?}", diagonal_offset_minus_1);
-
-    // diagonal offset -2
-    let tmp = grid.slice(s![.., 2..]);
-    let diagonal_offset_minus_2 = tmp.diag();
-    println!("diagonal offset -2:\n{:?}", diagonal_offset_minus_2);
-
-    // transposed grid
-    let transposed_grid = grid.t();
-    println!("transposed:\n{:?}", transposed_grid);
-
-    let mut horizontal_flip_grid = grid.clone();
-    horizontal_flip_grid.invert_axis(Axis(1));
-    println!("horizontal flip:\n{:?}", horizontal_flip_grid);
-
-    //let mut vertical_flip_grid = grid.clone();
-    //vertical_flip_grid.invert_axis(Axis(0));
-    //println!("vertical flip:\n{:?}", vertical_flip_grid);
-
-    // rotate 90 degrees
-    let mut rotate_90_grid = grid.clone();
-    rotate_90_grid.swap_axes(0, 1);
-    rotate_90_grid.invert_axis(Axis(0));
-    println!("rotate 90:\n{:?}", rotate_90_grid);
-
-    // horizontal flip rotate 90
-    let mut horizontal_flip_rotate_90_grid = rotate_90_grid.clone();
-    horizontal_flip_rotate_90_grid.invert_axis(Axis(1));
-    println!(
-        "horizontal flip rotate 90:\n{:?}",
-        horizontal_flip_rotate_90_grid
-    );*/
 }
 
 pub fn day_04_part_2(data: &str) -> i64 {
