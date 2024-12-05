@@ -77,27 +77,6 @@ fn is_valid_update(update: &Vec<u8>, faster_rules: &[Vec<u8>]) -> bool {
     true
 }
 
-fn sort_with_lookup_table(data: &[u8], lookup_table: &[u8]) -> Vec<u8> {
-    // Std fancy way
-    // data.sort_unstable_by_key(|&page| lookup_table[page as usize]);
-
-    // Variant of a count sort algorithm, simplified as data and lookup table
-    // contain only distinct values.
-    let mut output = Vec::with_capacity(data.len());
-
-    let mut temp: [Option<u8>; 256] = [None; 256];
-    for page in data {
-        let rank = lookup_table[*page as usize];
-        temp[rank as usize] = Some(*page);
-    }
-
-    for page in temp.iter().flatten() {
-        output.push(*page);
-    }
-
-    output
-}
-
 fn build_faster_rules(rules: &[(u8, u8)]) -> [Vec<u8>; 256] {
     let mut faster_rules: [Vec<u8>; 256] = std::array::from_fn(|_| Vec::new());
     for (a, b) in rules {
@@ -106,23 +85,10 @@ fn build_faster_rules(rules: &[(u8, u8)]) -> [Vec<u8>; 256] {
     faster_rules
 }
 
-pub fn day_05_part_1(data: &str) -> i64 {
-    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
-
-    // We create an array that for each page, contains the list of pages that should come before
-    let faster_rules = build_faster_rules(&data.rules);
-
-    data.updates
-        .iter()
-        .filter(|update| is_valid_update(update, &faster_rules))
-        .map(|update| update[update.len() / 2] as i64)
-        .sum()
-}
-
 // We are going for a Kahn's algorithm approach. I started to come up with
 // something looking vaguely like it, but it sounded hard, so I checked the solution.
 // Sorry.
-fn kahn_algorithm(numbers: &[u8], rules: &[(u8, u8)]) -> (Vec<u8>, [u8; 256]) {
+fn kahn_algorithm(numbers: &[u8], rules: &[(u8, u8)]) -> Vec<u8> {
     let mut graph: [Vec<u8>; 256] = std::array::from_fn(|_| Vec::new());
     let mut in_degree: [u8; 256] = [0; 256];
 
@@ -162,13 +128,20 @@ fn kahn_algorithm(numbers: &[u8], rules: &[(u8, u8)]) -> (Vec<u8>, [u8; 256]) {
         panic!("We didn't find all the pages ! A cycle is present !");
     }
 
-    let mut sort_lookup_table: [u8; 256] = [0; 256];
+    sorted_order
+}
 
-    for (i, page) in sorted_order.iter().enumerate() {
-        sort_lookup_table[*page as usize] = i as u8;
-    }
+pub fn day_05_part_1(data: &str) -> i64 {
+    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
 
-    (sorted_order, sort_lookup_table)
+    // We create an array that for each page, contains the list of pages that should come before
+    let faster_rules = build_faster_rules(&data.rules);
+
+    data.updates
+        .iter()
+        .filter(|update| is_valid_update(update, &faster_rules))
+        .map(|update| update[update.len() / 2] as i64)
+        .sum()
 }
 
 pub fn day_05_part_2(data: &str) -> i64 {
@@ -180,9 +153,8 @@ pub fn day_05_part_2(data: &str) -> i64 {
         .iter()
         .filter(|update| !is_valid_update(update, &faster_rules))
         .map(|update| {
-            let (_, sort_lookup_table) = kahn_algorithm(update, &data.rules);
-            let sorted_update = sort_with_lookup_table(update, &sort_lookup_table);
-            sorted_update[update.len() / 2] as i64
+            let sorted_update = kahn_algorithm(update, &data.rules);
+            sorted_update[sorted_update.len() / 2] as i64
         })
         .sum()
 }
