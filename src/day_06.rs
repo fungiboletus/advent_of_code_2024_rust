@@ -91,6 +91,7 @@ type Map = Array2<Space>;
 #[allow(dead_code)]
 trait MapExt {
     fn print(&self);
+    fn print_witf_obstacle_position(&self, obstacle_position: (usize, usize));
 }
 
 impl MapExt for Map {
@@ -108,6 +109,27 @@ impl MapExt for Map {
                 );
             }
             println!();
+        }
+    }
+
+    fn print_witf_obstacle_position(&self, obstacle_position: (usize, usize)) {
+        for ((row, col), space) in self.indexed_iter() {
+            if (row, col) == obstacle_position {
+                print!("O");
+            } else {
+                print!(
+                    "{}",
+                    match space {
+                        Space::Empty => '.',
+                        Space::Obstructed => '#',
+                        Space::Start => '^',
+                        Space::Visited => 'X',
+                    }
+                );
+            }
+            if col == self.ncols() - 1 {
+                println!();
+            }
         }
     }
 }
@@ -336,8 +358,25 @@ fn will_exit_map(
 
     let mut position = start_position;
     let mut direction = Direction::Up;
-
     visited_positions[(position.0, position.1, direction.to_usize())] = true;
+    // if obstacle straight above the start position, it's a special case
+    // and we need to rotate immediately
+    if lookup_tables.up[start_position] == Some(start_position.0 - 1) {
+        direction = direction.rotate();
+        // if obstacle on the right then, rotate again
+        if lookup_tables.right[start_position] == Some(start_position.1 + 1) {
+            direction = direction.rotate();
+            // and again for the bottom
+            if lookup_tables.down[start_position] == Some(start_position.0 + 1) {
+                direction = direction.rotate();
+                // and if another obstacle, it's a dead end
+                if lookup_tables.left[start_position] == Some(start_position.1 - 1) {
+                    return false;
+                }
+            }
+        }
+        visited_positions[(position.0, position.1, direction.to_usize())] = true;
+    }
 
     while let Some(position_before_next_obstacle) =
         lookup_tables.position_before_obstacle(&direction, position)
@@ -375,7 +414,6 @@ pub fn day_06_part_2(data: &str) -> i64 {
             !will_exit_map(map_size, start_position, &new_lookup_tables)
         })
         .count() as i64
-        - 1 // seriously didn't try to find out why I need to subtract 1
 }
 
 #[cfg(test)]
