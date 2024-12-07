@@ -6,7 +6,7 @@
     But I got a bit stuck because my code worked on the example
     and not on the actual problem. So I found this neat solution:
      - https://github.com/mkeeter/advent-of-code/blob/main/2024/07/src/lib.rs
-     - I forgot to consider quite a few things.
+     - I did forget to consider quite a few things.
      - *thanks*.
 
 */
@@ -15,28 +15,39 @@ use nom::{
     bytes::complete::tag, character::complete::line_ending, combinator::map,
     multi::separated_list1, sequence::tuple, IResult,
 };
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-fn rec_look_for_solutions(current: u64, target: u64, numbers: &[u64]) -> bool {
+fn rec_look_for_solutions(current: u64, target: u64, numbers: &[u64], concat: bool) -> bool {
     if let Some((last, rest)) = numbers.split_last() {
         // If we can substract
-        if current > *last && rec_look_for_solutions(current - last, target, rest) {
+        if current > *last && rec_look_for_solutions(current - last, target, rest, concat) {
             return true;
         }
 
         // If we can devide
-        if current % *last == 0 {
-            return rec_look_for_solutions(current / last, target, rest);
+        if current % *last == 0 && rec_look_for_solutions(current / last, target, rest, concat) {
+            return true;
         }
+
+        if concat {
+            // fancy way to get a base 10 number with the same place value
+            let place_value = 10_u64.pow(last.ilog10() + 1);
+            // If it finishes with the last number, it's potentially a concatenation
+            if current % place_value == *last {
+                return rec_look_for_solutions(current / place_value, target, rest, concat);
+            }
+        }
+
         return false;
     }
     current == target
 }
 
-fn compute_maths(target: u64, numbers: &[u64]) -> bool {
+fn is_valid_case(target: u64, numbers: &[u64], concat: bool) -> bool {
     if numbers.is_empty() {
         panic!("We need at least one number");
     }
-    rec_look_for_solutions(target, numbers[0], &numbers[1..])
+    rec_look_for_solutions(target, numbers[0], &numbers[1..], concat)
 }
 
 fn parse_input_data(data: &str) -> IResult<&str, Vec<(u64, Vec<u64>)>> {
@@ -56,15 +67,20 @@ fn parse_input_data(data: &str) -> IResult<&str, Vec<(u64, Vec<u64>)>> {
 pub fn day_07_part_1(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
 
-    data.iter()
+    data.par_iter()
         //.skip(849)
-        .filter(|(target, numbers)| compute_maths(*target, numbers))
+        .filter(|(target, numbers)| is_valid_case(*target, numbers, false))
         .map(|(target, _)| *target)
         .sum::<u64>() as i64
 }
 
 pub fn day_07_part_2(data: &str) -> i64 {
-    42
+    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
+
+    data.par_iter()
+        .filter(|(target, numbers)| is_valid_case(*target, numbers, true))
+        .map(|(target, _)| *target)
+        .sum::<u64>() as i64
 }
 
 #[cfg(test)]
