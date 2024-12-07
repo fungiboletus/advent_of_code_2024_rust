@@ -265,50 +265,55 @@ impl LookupTables {
     }
 
     fn with_new_obstacle(&self, obstacle_position: (usize, usize)) -> Self {
-        let mut new_self = self.clone();
+        let mut destination = self.clone();
         let (row, col) = obstacle_position;
-        let nb_rows = new_self.up.nrows();
-        let nb_cols = new_self.up.ncols();
+        let nb_rows = destination.up.nrows();
+        let nb_cols = destination.up.ncols();
 
         // update up by setting the new index to the rows below the obstacle
         // until we reach the end of the map or another obstacle
         for i_row in row..nb_rows {
-            let current = new_self.up[(i_row, col)];
+            let current = destination.up[(i_row, col)];
             if current.is_none() || current.unwrap() < row {
-                new_self.up[(i_row, col)] = Some(row);
+                destination.up[(i_row, col)] = Some(row);
             }
         }
 
         // down
         for i_row in (0..row).rev() {
-            let current = new_self.down[(i_row, col)];
+            let current = destination.down[(i_row, col)];
             if current.is_none() || current.unwrap() > row {
-                new_self.down[(i_row, col)] = Some(row);
+                destination.down[(i_row, col)] = Some(row);
             }
         }
 
         // left
         for i_col in col..nb_cols {
-            let current = new_self.left[(row, i_col)];
+            let current = destination.left[(row, i_col)];
             if current.is_none() || current.unwrap() < col {
-                new_self.left[(row, i_col)] = Some(col);
+                destination.left[(row, i_col)] = Some(col);
             }
         }
 
         // right
         for i_col in (0..col).rev() {
-            let current = new_self.right[(row, i_col)];
+            let current = destination.right[(row, i_col)];
             if current.is_none() || current.unwrap() > col {
-                new_self.right[(row, i_col)] = Some(col);
+                destination.right[(row, i_col)] = Some(col);
             }
         }
 
-        new_self
+        destination
     }
 }
 
-fn will_exit_map(map: &Map, start_position: (usize, usize), lookup_tables: &LookupTables) -> bool {
-    let mut visited_positions = Array3::from_elem((map.nrows(), map.ncols(), 4), false);
+fn will_exit_map(
+    start_position: (usize, usize),
+    lookup_tables: &LookupTables,
+    visited_positions: &mut Array3<bool>,
+) -> bool {
+    visited_positions.fill(false);
+    //let mut visited_positions = Array3::from_elem((map.nrows(), map.ncols(), 4), false);
 
     let mut position = start_position;
     let mut direction = Direction::Up;
@@ -346,6 +351,8 @@ pub fn day_06_part_2(data: &str) -> i64 {
 
     let visited_map = visit_map(&map, start_position);
 
+    let mut visited_positions = Array3::from_elem((map.nrows(), map.ncols(), 4), false);
+
     visited_map
         .indexed_iter()
         .filter(|(position, space)| {
@@ -358,7 +365,7 @@ pub fn day_06_part_2(data: &str) -> i64 {
             }
 
             let new_lookup_tables = lookup_tables.with_new_obstacle(*position);
-            !will_exit_map(&map, start_position, &new_lookup_tables)
+            !will_exit_map(start_position, &new_lookup_tables, &mut visited_positions)
         })
         .count() as i64
         - 1 // seriously didn't try to find out why I need to subtract 1
