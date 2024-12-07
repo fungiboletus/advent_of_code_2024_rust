@@ -1,5 +1,24 @@
 /*
-    Comments.
+    Part 1 was relatively straightforward.
+
+    Part 2 was a bit more challenging because
+    I didn't want to have a simple bruteforce.
+
+    I couldn't find a good algorithm that is not bruteforce,
+    and after many hours, no one seem to have found
+    a not bruteforce solution on r/adventofcode.
+
+    The classic optimisation seems to be about lookup tables,
+    with most people implementing them as matrix.
+
+    Someone implemented the lookup tables using sorted lists
+    and browsed them with binary search. This may be slightly
+    faster as the lookup tables are not very dense.
+
+    But I went with the matrix lookup table and a lot of code.
+
+    It's not the most elegant solution, but it runs in about 60ms
+    on my M1 laptop, which is good enough for a Day 6 puzzle.
 */
 
 use ndarray::{Array2, Array3};
@@ -9,6 +28,7 @@ use nom::{
     multi::{many1, separated_list1},
     IResult,
 };
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
 #[derive(Clone, Debug, PartialEq)]
 enum Space {
@@ -19,7 +39,7 @@ enum Space {
     Visited,
 }
 
-#[derive(Debug, PartialEq, Clone, Hash)]
+#[derive(Debug, PartialEq)]
 enum Direction {
     Up,
     Right,
@@ -308,12 +328,11 @@ impl LookupTables {
 }
 
 fn will_exit_map(
+    map_size: (usize, usize),
     start_position: (usize, usize),
     lookup_tables: &LookupTables,
-    visited_positions: &mut Array3<bool>,
 ) -> bool {
-    visited_positions.fill(false);
-    //let mut visited_positions = Array3::from_elem((map.nrows(), map.ncols(), 4), false);
+    let mut visited_positions = Array3::from_elem((map_size.0, map_size.1, 4), false);
 
     let mut position = start_position;
     let mut direction = Direction::Up;
@@ -336,12 +355,6 @@ fn will_exit_map(
 }
 
 pub fn day_06_part_2(data: &str) -> i64 {
-    /*
-    .#.
-    .^#
-    .^.
-     */
-
     let (_, map) = parse_input_data(data).expect("Failed to parse input data");
 
     // we build lookup maps that give the index of the next obstacle in each direction
@@ -351,21 +364,15 @@ pub fn day_06_part_2(data: &str) -> i64 {
 
     let visited_map = visit_map(&map, start_position);
 
-    let mut visited_positions = Array3::from_elem((map.nrows(), map.ncols(), 4), false);
+    let map_size = (map.nrows(), map.ncols());
 
     visited_map
         .indexed_iter()
-        .filter(|(position, space)| {
-            if **space != Space::Visited {
-                return false;
-            }
-
-            if position == &start_position {
-                return false;
-            }
-
+        .filter(|(position, space)| **space == Space::Visited && position != &start_position)
+        .par_bridge()
+        .filter(|(position, _)| {
             let new_lookup_tables = lookup_tables.with_new_obstacle(*position);
-            !will_exit_map(start_position, &new_lookup_tables, &mut visited_positions)
+            !will_exit_map(map_size, start_position, &new_lookup_tables)
         })
         .count() as i64
         - 1 // seriously didn't try to find out why I need to subtract 1
