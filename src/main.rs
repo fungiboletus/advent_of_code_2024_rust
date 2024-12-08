@@ -5,6 +5,7 @@ mod day_04;
 mod day_05;
 mod day_06;
 mod day_07;
+mod day_08;
 
 fn execute_day<F, G>(day: &str, data: &str, part_1: F, part_2: G)
 where
@@ -14,7 +15,7 @@ where
     let now = std::time::Instant::now();
     println!("Day {}, part 1: {}", day, part_1(data));
     println!("Day {}, part 2: {}", day, part_2(data));
-    println!("Time: {:?}", now.elapsed());
+    println!("Time day {}: {:?}", day, now.elapsed());
 }
 
 macro_rules! execute_day {
@@ -45,5 +46,5 @@ macro_rules! execute_days {
 }
 
 fn main() {
-    execute_days!("01", "02", "03", "04", "05", "06", "07");
+    execute_days!("01", "02", "03", "04", "05", "06", "07", "08");
 }
