@@ -2,6 +2,8 @@
     Part 1 is somewhat simple, though I definitely don't enjoy
     working with indices on matrix.
 
+    Part 2 is a small variation of part 1. An easy Sunday.
+
     I used itertools' permutations utility which is neat.
     I should use it more often.
 */
@@ -20,7 +22,6 @@ use nom::{
 };
 
 fn ascii_to_key(ascii: char) -> Option<usize> {
-    //let ascii = ascii as u8;
     match ascii {
         'A'..='Z' => Some(ascii as usize - 65),
         'a'..='z' => Some(ascii as usize - 97 + 26),
@@ -58,9 +59,7 @@ fn parse_input_data(data: &str) -> IResult<&str, Array2<char>> {
     )(data)
 }
 
-pub fn day_08_part_1(data: &str) -> i64 {
-    let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
-
+fn compute_solution(grid: Array2<char>, harmonics: bool) -> i64 {
     const NB_KEYS: usize = 62;
     let mut antennas_per_key: Vec<Vec<(usize, usize)>> = vec![Vec::new(); NB_KEYS];
 
@@ -85,6 +84,11 @@ pub fn day_08_part_1(data: &str) -> i64 {
         for window in antennas_group.iter().permutations(2) {
             let (col_a, row_a) = window[0];
             let (col_b, row_b) = window[1];
+
+            // the antenna is also an antinode in harmonics mode
+            if harmonics {
+                antinodes_presence_map[(*col_a, *row_a)] = true;
+            }
             //println!("{:?} {:?}", window[0], window[1]);
             let col_a = *col_a as i64;
             let row_a = *row_a as i64;
@@ -94,20 +98,27 @@ pub fn day_08_part_1(data: &str) -> i64 {
             let diff_col = col_b - col_a;
             let diff_row = row_b - row_a;
 
-            let antipode = (col_a - diff_col, row_a - diff_row);
-            //let antipode_two = (col_b + diff_col, row_b + diff_row);
+            let mut antipod_col = col_a; // - diff_col;
+            let mut antipod_row = row_a; // - diff_row;
 
-            //println!("{:?} {:?}", antipode_one, antipode_two);
-            if antipode.0 >= 0 && antipode.1 >= 0 && antipode.0 < nb_cols && antipode.1 < nb_rows {
-                antinodes_presence_map[(antipode.0 as usize, antipode.1 as usize)] = true;
+            loop {
+                antipod_col -= diff_col;
+                antipod_row -= diff_row;
+
+                if antipod_col < 0
+                    || antipod_row < 0
+                    || antipod_col >= nb_cols
+                    || antipod_row >= nb_rows
+                {
+                    break;
+                }
+
+                antinodes_presence_map[(antipod_col as usize, antipod_row as usize)] = true;
+
+                if !harmonics {
+                    break;
+                }
             }
-            /*if antipode_two.0 >= 0
-                && antipode_two.1 >= 0
-                && antipode_two.0 < grid.ncols() as i64
-                && antipode_two.1 < grid.nrows() as i64
-            {
-                antinodes_presence_map[(antipode_two.0 as usize, antipode_two.1 as usize)] = true;
-            }*/
         }
         //print_presence_map(&antinodes_presence_map);
     }
@@ -120,8 +131,16 @@ pub fn day_08_part_1(data: &str) -> i64 {
         .count() as i64
 }
 
+pub fn day_08_part_1(data: &str) -> i64 {
+    let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
+
+    compute_solution(grid, false)
+}
+
 pub fn day_08_part_2(data: &str) -> i64 {
-    42
+    let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
+
+    compute_solution(grid, true)
 }
 
 #[cfg(test)]
@@ -178,6 +197,21 @@ mod tests {
 
     #[test]
     fn test_day_08_part_2() {
-        assert_eq!(day_08_part_2(EXAMPLE), 42);
+        assert_eq!(
+            day_08_part_2(
+                "T.........
+...T......
+.T........
+..........
+..........
+..........
+..........
+..........
+..........
+.........."
+            ),
+            9
+        );
+        assert_eq!(day_08_part_2(EXAMPLE), 34);
     }
 }
