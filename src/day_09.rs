@@ -10,7 +10,9 @@
  Also, it seems you do .rev() before and after a .map, it cancels out instead of
  doing the map in reverse and puting the iterator back in the right order after.
 
- Anyway, I'm happy with the result as it runs on O(N*9).
+ Anyway, I'm happy with the result as it runs on ~~O(N)~~ O(NlogN).
+
+ Switching from VecDeque to BinaryHeap could be tested on very large inputs.
 
 */
 
