@@ -7,6 +7,7 @@ mod day_06;
 mod day_07;
 mod day_08;
 mod day_09;
+mod day_10;
 
 fn execute_day<F, G>(day: &str, data: &str, part_1: F, part_2: G)
 where
@@ -47,5 +48,5 @@ macro_rules! execute_days {
 }
 
 fn main() {
-    execute_days!("01", "02", "03", "04", "05", "06", "07", "08", "09");
+    execute_days!("01", "02", "03", "04", "05", "06", "07", "08", "09", "10");
 }
