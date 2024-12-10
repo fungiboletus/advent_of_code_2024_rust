@@ -1,5 +1,13 @@
 /*
-    Comments.
+    Finally recovered a bit by the end of the day.
+
+    Relatively simple day with a DFS.
+
+    I did the classic trick to start from the end of the problem,
+    the top of the paths.
+
+    Part 2 is surprisingly quick as it's just the same but without
+    the visited cells check.
 */
 
 use ndarray::Array2;
@@ -33,12 +41,14 @@ fn parse_input_data(data: &str) -> IResult<&str, Array2<Option<u8>>> {
     )(data)
 }
 
-pub fn day_10_part_1(data: &str) -> i64 {
+fn do_day(data: &str, skip_visited: bool) -> i64 {
     let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
     let nrows = grid.nrows();
     let ncols = grid.ncols();
 
-    let mut reachable_tops_counters = Array2::<usize>::zeros(grid.dim());
+    let mut counters = Array2::<usize>::zeros(grid.dim());
+    let mut visited =
+        Array2::<bool>::from_elem(if skip_visited { grid.dim() } else { (0, 0) }, false);
 
     // Start from the tops
     for top in grid
@@ -46,14 +56,18 @@ pub fn day_10_part_1(data: &str) -> i64 {
         .filter(|(_, height)| **height == Some(9))
     {
         let mut dfs_pile: Vec<((usize, usize), u8)> = vec![(top.0, 9)];
-        let mut visited = Array2::<bool>::from_elem(grid.dim(), false);
+        if skip_visited {
+            visited.fill(false);
+        }
 
         while let Some(((row, col), height)) = dfs_pile.pop() {
-            if visited[(row, col)] {
-                continue;
+            if skip_visited {
+                if visited[(row, col)] {
+                    continue;
+                }
+                visited[(row, col)] = true;
             }
-            reachable_tops_counters[(row, col)] += 1;
-            visited[(row, col)] = true;
+            counters[(row, col)] += 1;
             if height == 0 {
                 continue;
             }
@@ -73,14 +87,24 @@ pub fn day_10_part_1(data: &str) -> i64 {
         }
     }
 
-    grid.indexed_iter()
-        .filter(|(_, height)| **height == Some(0))
-        .map(|(pos, _)| reachable_tops_counters[pos])
+    /*grid.indexed_iter()
+    .filter(|(_, height)| **height == Some(0))
+    .map(|(pos, _)| counters[pos])
+    .sum::<usize>() as i64*/
+
+    grid.iter()
+        .zip(counters.iter())
+        .filter(|(height, _)| **height == Some(0))
+        .map(|(_, count)| *count)
         .sum::<usize>() as i64
 }
 
+pub fn day_10_part_1(data: &str) -> i64 {
+    do_day(data, true)
+}
+
 pub fn day_10_part_2(data: &str) -> i64 {
-    42
+    do_day(data, false)
 }
 
 #[cfg(test)]
@@ -121,6 +145,29 @@ mod tests {
 01329801
 10456732";
 
+    const EXAMPLE_F: &str = ".....0.
+..4321.
+..5..2.
+..6543.
+..7..4.
+..8765.
+..9....";
+
+    const EXAMPLE_G: &str = "..90..9
+...1.98
+...2..7
+6543456
+765.987
+876....
+987....";
+
+    const EXAMPLE_H: &str = "012345
+123456
+234567
+345678
+4.6789
+56789.";
+
     #[test]
     fn test_day_10_part_1() {
         assert_eq!(day_10_part_1(EXAMPLE_A), 1);
@@ -132,6 +179,9 @@ mod tests {
 
     #[test]
     fn test_day_10_part_2() {
-        assert_eq!(day_10_part_2(EXAMPLE_A), 42);
+        assert_eq!(day_10_part_2(EXAMPLE_F), 3);
+        assert_eq!(day_10_part_2(EXAMPLE_G), 13);
+        assert_eq!(day_10_part_2(EXAMPLE_H), 227);
+        assert_eq!(day_10_part_2(EXAMPLE_E), 81);
     }
 }
