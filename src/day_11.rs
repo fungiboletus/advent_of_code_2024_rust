@@ -1,9 +1,13 @@
 /*
-    Comments.
+    I did part 1 naively, fully expecting part 2 to be the same but worse.
+    Part 2 was indeed the same but worse and it didn't scale.
+
+    I checked the solution on r/adventofcode and slightly changed the algorithm
+    to not compute the list of numbers but to compute the number of numbers
+    recursively with memoization.
 */
 
-use std::iter::once;
-
+use cached::proc_macro::cached;
 use nom::{character::complete::space1, multi::separated_list1, IResult};
 
 fn parse_input_data(data: &str) -> IResult<&str, Vec<u64>> {
@@ -30,7 +34,7 @@ fn split_in_two_per_digit(number: u64) -> (u64, u64) {
     (left, right)
 }
 
-fn blink(input: &[u64]) -> Vec<u64> {
+/*fn blink(input: &[u64]) -> Vec<u64> {
     input
         .iter()
         .flat_map(|&n| -> Box<dyn Iterator<Item = u64>> {
@@ -44,31 +48,33 @@ fn blink(input: &[u64]) -> Vec<u64> {
             Box::new(once(n * 2024))
         })
         .collect()
+}*/
+
+#[cached]
+fn blink_v2(number: u64, generation_left: usize) -> u64 {
+    if generation_left == 0 {
+        return 1;
+    }
+    let next_generation_left = generation_left - 1;
+    if number == 0 {
+        return blink_v2(1, next_generation_left);
+    }
+    if nb_digits(number) & 1 == 0 {
+        let (a, b) = split_in_two_per_digit(number);
+        return blink_v2(a, next_generation_left) + blink_v2(b, next_generation_left);
+    }
+    blink_v2(number * 2024, next_generation_left)
 }
 
 pub fn day_11_part_1(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
 
-    let mut v = data;
-    for _ in 0..25 {
-        v = blink(&v);
-    }
-    v.len() as i64
+    data.iter().map(|&n| blink_v2(n, 25)).sum::<u64>() as i64
 }
 
 pub fn day_11_part_2(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
-
-    let mut lengths: Vec<usize> = Vec::with_capacity(25);
-    let mut v = data;
-    for i in 0..75 {
-        v = blink(&v);
-        lengths.push(v.len());
-        println!("iteration {}: {}", i, v.len());
-    }
-
-    println!("{:?}", lengths);
-    v.len() as i64
+    data.iter().map(|&n| blink_v2(n, 75)).sum::<u64>() as i64
 }
 
 #[cfg(test)]
@@ -86,13 +92,13 @@ mod tests {
         assert_eq!(split_in_two_per_digit(1000), (10, 0));
     }
 
-    #[test]
+    /*#[test]
     fn test_blink() {
         assert_eq!(
             blink(&[0, 1, 10, 99, 999]),
             vec![1, 2024, 1, 0, 9, 9, 2021976]
         );
-    }
+    }*/
 
     #[test]
     fn test_day_11_part_1() {
@@ -101,6 +107,6 @@ mod tests {
 
     #[test]
     fn test_day_11_part_2() {
-        assert_eq!(day_11_part_2(EXAMPLE), 42);
+        assert_eq!(day_11_part_2(EXAMPLE), 65601038650482);
     }
 }
