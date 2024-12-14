@@ -1,7 +1,20 @@
 /*
     Part 1 is about modulo.
+
+    Part 2 is about finding the first time when the robots
+    display a christmas tree.
+
+    I had a guess that filtering out the times where robots
+    are overlapping would help a lot, and perhaps a visual
+    filtering would be necessary. But it seems like the first
+    day where there is no overlap is the answer. So an easy
+    day.
+
+    The part 2 solution could be optimised instead of iterating
+    over time, I guess, but it's relatively fast.
 */
 
+use ndarray::Array2;
 use nom::{
     bytes::complete::tag, character::complete::line_ending, combinator::map,
     multi::separated_list1, sequence::tuple, IResult,
@@ -23,6 +36,20 @@ struct Position {
 struct Robot {
     position: Position,
     velocity: Velocity,
+}
+
+fn move_robot(robot: &Robot, time_span: i64, wide: i64, tall: i64) -> Position {
+    let col = (((robot.position.col + robot.velocity.col * time_span) % wide) + wide) % wide;
+    let row = (((robot.position.row + robot.velocity.row * time_span) % tall) + tall) % tall;
+    Position { col, row }
+}
+
+impl Robot {
+    fn update_position(&mut self, time_span: i64, wide: i64, tall: i64) {
+        let Position { col, row } = move_robot(self, time_span, wide, tall);
+        self.position.col = col;
+        self.position.row = row;
+    }
 }
 
 fn parse_position(input: &str) -> IResult<&str, Position> {
@@ -79,11 +106,10 @@ pub fn day_14_part_1(data: &str) -> i64 {
     let mut counter_bottom_left = 0;
     let mut counter_bottom_right = 0;
 
-    for Position { col, row } in data.iter().map(|robot| {
-        let col = (((robot.position.col + robot.velocity.col * time_span) % wide) + wide) % wide;
-        let row = (((robot.position.row + robot.velocity.row * time_span) % tall) + tall) % tall;
-        Position { col, row }
-    }) {
+    for Position { col, row } in data
+        .iter()
+        .map(|robot| move_robot(robot, time_span, wide, tall))
+    {
         #[allow(clippy::comparison_chain)]
         if col < col_split {
             if row < row_split {
@@ -104,7 +130,34 @@ pub fn day_14_part_1(data: &str) -> i64 {
 }
 
 pub fn day_14_part_2(data: &str) -> i64 {
-    42
+    let (_, mut data) = parse_input_data(data).expect("Failed to parse input data");
+    let wide = 101;
+    let tall = 103;
+
+    // assumption, no overlapping robots
+    let mut time = 0;
+    loop {
+        time += 1;
+        for robot in data.iter_mut() {
+            robot.update_position(1, wide, tall);
+        }
+
+        let mut positions = Array2::<bool>::from_elem((wide as usize, tall as usize), false);
+        let mut found_overlap = false;
+        for robot in data.iter() {
+            let position = (robot.position.col as usize, robot.position.row as usize);
+            if positions[position] {
+                found_overlap = true;
+                break;
+            } else {
+                positions[position] = true;
+            }
+        }
+        if !found_overlap {
+            break;
+        }
+    }
+    time
 }
 
 #[cfg(test)]
