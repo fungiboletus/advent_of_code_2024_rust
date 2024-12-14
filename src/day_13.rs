@@ -1,6 +1,9 @@
 /*
     Part 1 is solved using maths. It's only about solving
     a simple system of linear equations.
+
+    Part 2 was very easy for me today, it was just about
+    making the non maths solutions too slow.
 */
 
 use nom::{
@@ -8,7 +11,7 @@ use nom::{
     multi::separated_list1, sequence::tuple, IResult,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Button {
     x: i64,
     y: i64,
@@ -61,6 +64,17 @@ impl PrizeProblem {
             None
         } else {
             Some((clicks_a, clicks_b))
+        }
+    }
+
+    fn to_part_two(&self) -> Self {
+        PrizeProblem {
+            button_a: self.button_a.clone(),
+            button_b: self.button_b.clone(),
+            prize: Prize {
+                x: self.prize.x + 10000000000000,
+                y: self.prize.y + 10000000000000,
+            },
         }
     }
 }
@@ -123,7 +137,13 @@ pub fn day_13_part_1(data: &str) -> i64 {
 }
 
 pub fn day_13_part_2(data: &str) -> i64 {
-    42
+    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
+
+    data.iter()
+        .map(|problem| problem.to_part_two())
+        .filter_map(|problem| problem.clicks_per_button())
+        .map(|(clicks_a, clicks_b)| 3 * clicks_a + clicks_b)
+        .sum()
 }
 
 #[cfg(test)]
@@ -153,6 +173,6 @@ Prize: X=18641, Y=10279";
 
     #[test]
     fn test_day_13_part_2() {
-        assert_eq!(day_13_part_2(EXAMPLE), 42);
+        assert_eq!(day_13_part_2(EXAMPLE), 875318608908);
     }
 }
