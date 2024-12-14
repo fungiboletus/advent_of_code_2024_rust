@@ -14,6 +14,20 @@
     over time, I guess, but it's relatively fast.
 
     A day that didn't require fishing for clues.
+
+    Thinking back about it, my solution works 96% of the time,
+    and only because the initial positions used to build the problem
+    didn't have overlapping robots.
+
+    96% because of the birthday paradoxe.
+
+    Probability of at least 2 overlapping robots in a group of
+    500 robots over 101*103 positions is 196 497 / 196 498
+    (birthday paradoxe computed with Wolfram Alpha).
+
+    Then having this probability about 7800 times in a row is
+    (196 497 / 196 498)^7800 ~= 0.96
+
 */
 
 use ndarray::Array2;
