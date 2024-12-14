@@ -1,6 +1,21 @@
 /*
-    Comments.
+    Enjoyed part 1, with a nice DFS like the previous day.
+
+    Part 2 has been a annoying to me because I thought it was
+    going to be a nice trick to count the straights but it wasn't.
+
+    I didn't do it for days and consider skipping it because I didn't
+    enjoy the problem. It did feel like a chore.
+
+    But someone on r/adventofcode mentioned that you could do it with
+    a Set and checking the existence of another similar border next
+    to the current one when counting.
+
+    That did sound more fun than most other suggested solutions, so
+    I did that, and it wasn't too bad after all.
 */
+
+use std::collections::HashSet;
 
 use ndarray::Array2;
 use nom::{
@@ -22,7 +37,15 @@ fn parse_input_data(data: &str) -> IResult<&str, Array2<char>> {
     )(data)
 }
 
-pub fn day_12_part_1(data: &str) -> i64 {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Side {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
+fn day_12(data: &str, part_two: bool) -> i64 {
     let (_, grid) = parse_input_data(data).expect("Failed to parse input data");
     let nrows = grid.nrows();
     let ncols = grid.ncols();
@@ -36,7 +59,8 @@ pub fn day_12_part_1(data: &str) -> i64 {
         }
 
         let mut area: usize = 0;
-        let mut borders: usize = 0;
+        //let mut borders: usize = 0;
+        let mut borders_set: HashSet<(usize, usize, Side)> = HashSet::new();
         let mut dfs_pile: Vec<(usize, usize)> = vec![(row, col)];
 
         while let Some((row, col)) = dfs_pile.pop() {
@@ -50,50 +74,88 @@ pub fn day_12_part_1(data: &str) -> i64 {
 
             if row > 0 {
                 if grid[(row - 1, col)] != region {
-                    borders += 1;
+                    //borders += 1;
+                    borders_set.insert((row, col, Side::Top));
                 } else {
                     dfs_pile.push((row - 1, col));
                 }
             } else {
-                borders += 1;
+                //borders += 1;
+                borders_set.insert((row, col, Side::Top));
             }
             if row < nrows - 1 {
                 if grid[(row + 1, col)] != region {
-                    borders += 1;
+                    //borders += 1;
+                    borders_set.insert((row, col, Side::Bottom));
                 } else {
                     dfs_pile.push((row + 1, col));
                 }
             } else {
-                borders += 1;
+                //borders += 1;
+                borders_set.insert((row, col, Side::Bottom));
             }
             if col > 0 {
                 if grid[(row, col - 1)] != region {
-                    borders += 1;
+                    //borders += 1;
+                    borders_set.insert((row, col, Side::Left));
                 } else {
                     dfs_pile.push((row, col - 1));
                 }
             } else {
-                borders += 1;
+                //borders += 1;
+                borders_set.insert((row, col, Side::Left));
             }
             if col < ncols - 1 {
                 if grid[(row, col + 1)] != region {
-                    borders += 1;
+                    //borders += 1;
+                    borders_set.insert((row, col, Side::Right));
                 } else {
                     dfs_pile.push((row, col + 1));
                 }
             } else {
-                borders += 1;
+                //borders += 1;
+                borders_set.insert((row, col, Side::Right));
             }
         }
 
-        total_price += area * borders;
+        //assert_eq!(borders_set.len(), borders);
+        let cost_model = if part_two {
+            borders_set
+                .iter()
+                .filter(|(row, col, side)| {
+                    let border_to_check = match side {
+                        Side::Top | Side::Bottom => {
+                            if *col == 0 {
+                                return true;
+                            }
+                            (*row, col - 1, *side)
+                        }
+                        Side::Left | Side::Right => {
+                            if *row == 0 {
+                                return true;
+                            }
+                            (row - 1, *col, *side)
+                        }
+                    };
+
+                    !borders_set.contains(&border_to_check)
+                })
+                .count()
+        } else {
+            borders_set.len()
+        };
+        total_price += area * cost_model;
     }
 
     total_price as i64
 }
 
+pub fn day_12_part_1(data: &str) -> i64 {
+    day_12(data, false)
+}
+
 pub fn day_12_part_2(data: &str) -> i64 {
-    42
+    day_12(data, true)
 }
 
 #[cfg(test)]
