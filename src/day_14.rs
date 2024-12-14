@@ -12,7 +12,11 @@
 
     The part 2 solution could be optimised instead of iterating
     over time, I guess, but it's relatively fast.
+
+    A day that didn't require fishing for clues.
 */
+
+use std::collections::HashSet;
 
 use ndarray::Array2;
 use nom::{
@@ -136,13 +140,14 @@ pub fn day_14_part_2(data: &str) -> i64 {
 
     // assumption, no overlapping robots
     let mut time = 0;
+    let mut positions = Array2::<bool>::from_elem((wide as usize, tall as usize), false);
     loop {
         time += 1;
         for robot in data.iter_mut() {
             robot.update_position(1, wide, tall);
         }
 
-        let mut positions = Array2::<bool>::from_elem((wide as usize, tall as usize), false);
+        positions.fill(false);
         let mut found_overlap = false;
         for robot in data.iter() {
             let position = (robot.position.col as usize, robot.position.row as usize);
