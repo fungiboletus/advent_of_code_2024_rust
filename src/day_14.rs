@@ -16,8 +16,6 @@
     A day that didn't require fishing for clues.
 */
 
-use std::collections::HashSet;
-
 use ndarray::Array2;
 use nom::{
     bytes::complete::tag, character::complete::line_ending, combinator::map,
