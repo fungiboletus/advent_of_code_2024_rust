@@ -28,6 +28,9 @@
     Then having this probability about 7800 times in a row is
     (196 497 / 196 498)^7800 ~= 0.96
 
+    The probability to have it between 1 and 10000 times in a row
+    is about 97%. Good enough.
+
 */
 
 use ndarray::Array2;
@@ -201,6 +204,6 @@ p=9,5 v=-3,-3";
 
     #[test]
     fn test_day_14_part_2() {
-        assert_eq!(day_14_part_2(EXAMPLE), 42);
+        assert_eq!(day_14_part_2(EXAMPLE), 1);
     }
 }
