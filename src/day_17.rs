@@ -19,11 +19,11 @@
 
     I don't think I would have found a good solution on my own.
 
-    My solution is also hardcoded by hand. A proper generic solution
-    that work on any day 17 input would require to implement the step function
-    a bit more like a VM of part 1.
-
-    I have seen people doing that, but I'm not going to do that.
+    Instead of hardcoding the step function by hand, and doing the reverse
+    engineering by hand, I reuse the VM code from part 1 and execute
+    on the program. I remove the last 2 instructions to skip
+    the loop, and the return value of the step function is the only
+    output of the program.
 */
 
 use nom::{
@@ -31,7 +31,7 @@ use nom::{
     multi::separated_list1, sequence::tuple, IResult,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Program {
     register_a: i64,
     register_b: i64,
@@ -236,75 +236,53 @@ pub fn day_17_part_1(data: &str) -> i64 {
 }
 
 pub fn day_17_part_2(data: &str) -> i64 {
-    // Program: 0,3,5,4,3,0";
-    // assembly:
-    // adv 3 (a = a / 2^3)
-    // out a % 8
-    // go to 0
-    // pseudo code:
-    // a = 2024
-    // while a != 0:
-    //     a = a / 8
-    //     print a % 8
-
-    fn step_example(a: u64) -> u8 {
-        ((a / 8) % 8) as u8
-    }
-
-    // Program: 2,4 1,3 7,5 4,0 1,3 0,3 5,5 3,0
-    // assembly:
-    // bst 4 (b = a % 8)
-    // bxl 3 (b = b ^ 3)
-    // cdv 5 (c = a / 2^b)
-    // bxc 0 (b = b ^ c)
-    // bxl 3 (b = b ^ 3)
-    // out 5 (print b % 8)
-    // jnz 0 (if a != 0)
-    // pseudo code:
-    // while a != 0:
-    //     b = a % 8
-    //     b = b ^ 3
-    //     c = a / 2^b
-    //     b = b ^ c
-    //     b = b ^ 3
-    //     print b % 8
-
-    fn step_problem(a: u64) -> u8 {
-        let b = (a % 8) ^ 3;
-        let c = a / 2_u64.pow(b as u32);
-        let b = b ^ c;
-        let b = b ^ 3;
-        (b % 8) as u8
-    }
-
     let (_, mut program) = parse_input_data(data).expect("Failed to parse input data");
 
-    fn find(example: bool, a: u64, col: usize, program: &Vec<u8>, solutions: &mut Vec<i64>) {
-        if example {
-            if step_example(a) != program[program.len() - 1 - col] {
-                return;
-            }
-        } else if step_problem(a) != program[program.len() - 1 - col] {
+    let mut step_program = program.clone();
+    if step_program.program[step_program.program.len() - 2] != 3 {
+        panic!("The program is not the expected one, it should finish with a jnz instruction.");
+    }
+    // remove the last 2 instructions
+    step_program
+        .program
+        .truncate(step_program.program.len() - 2);
+
+    fn generic_step(step_program: &mut Program, a: i64) -> u8 {
+        step_program.reset();
+        step_program.register_a = a;
+        step_program.execute();
+        assert_eq!(
+            step_program.output.len(),
+            1,
+            "The program should return one value."
+        );
+        step_program.output[0]
+    }
+
+    fn find(
+        a: i64,
+        col: usize,
+        program: &Vec<u8>,
+        step_program: &mut Program,
+        solutions: &mut Vec<i64>,
+    ) {
+        if generic_step(step_program, a) != program[program.len() - 1 - col] {
             return;
         }
+
         if col == program.len() - 1 {
-            solutions.push(a as i64);
+            solutions.push(a);
             return;
         }
         for b in 0..=7 {
-            find(example, a * 8 + b, col + 1, program, solutions);
+            find(a * 8 + b, col + 1, program, step_program, solutions);
         }
     }
 
-    let is_example = program.register_a == 2024;
-
-    if program.register_a != 2024 && program.register_a != 51342988 {
-        panic!("Sorry, I only hardcoded the example and my solution");
-    }
-
     let mut solutions = Vec::new();
+
     for a in 0..=7 {
-        find(is_example, a, 0, &program.program, &mut solutions);
+        find(a, 0, &program.program, &mut step_program, &mut solutions);
     }
 
     // sort by increasing order
