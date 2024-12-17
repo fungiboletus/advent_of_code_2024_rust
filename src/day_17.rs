@@ -1,5 +1,29 @@
 /*
-    Comments.
+    Part 1 is relatively straightforward though
+    a bit time consuming. I didn't try to be fancy, as I
+    expected a tricky part 2 since the problem is pretty short
+    and the stats were showing many many people not submitting
+    part 2 yet.
+
+    Part 2 was indeed difficult and a quick check on r/adventofcode
+    showed that the bruteforce solution wasn't going to work, unless
+    you have good GPUs and are good with GPU programming, or you
+    do SIMD programming. I don't.
+
+    The top solutions seem to be about reverse engineering the
+    program and backtracking, so I did that.
+
+    Most of the algorithm was heavily inspired by
+    https://www.reddit.com/r/adventofcode/comments/1hg38ah/comment/m2hmgw5/
+    Thanks to u/thibaultj, it was the most clean algorithm IMHO.
+
+    I don't think I would have found a good solution on my own.
+
+    My solution is also hardcoded by hand. A proper generic solution
+    that work on any day 17 input would require to implement the step function
+    a bit more like a VM of part 1.
+
+    I have seen people doing that, but I'm not going to do that.
 */
 
 use nom::{
@@ -54,6 +78,13 @@ impl Program {
             };
             instruction_pointer += 2;
         }
+    }
+
+    fn reset(&mut self) {
+        self.register_a = 0;
+        self.register_b = 0;
+        self.register_c = 0;
+        self.output.clear();
     }
 }
 
@@ -205,18 +236,108 @@ pub fn day_17_part_1(data: &str) -> i64 {
 }
 
 pub fn day_17_part_2(data: &str) -> i64 {
-    42
+    // Program: 0,3,5,4,3,0";
+    // assembly:
+    // adv 3 (a = a / 2^3)
+    // out a % 8
+    // go to 0
+    // pseudo code:
+    // a = 2024
+    // while a != 0:
+    //     a = a / 8
+    //     print a % 8
+
+    fn step_example(a: u64) -> u8 {
+        ((a / 8) % 8) as u8
+    }
+
+    // Program: 2,4 1,3 7,5 4,0 1,3 0,3 5,5 3,0
+    // assembly:
+    // bst 4 (b = a % 8)
+    // bxl 3 (b = b ^ 3)
+    // cdv 5 (c = a / 2^b)
+    // bxc 0 (b = b ^ c)
+    // bxl 3 (b = b ^ 3)
+    // out 5 (print b % 8)
+    // jnz 0 (if a != 0)
+    // pseudo code:
+    // while a != 0:
+    //     b = a % 8
+    //     b = b ^ 3
+    //     c = a / 2^b
+    //     b = b ^ c
+    //     b = b ^ 3
+    //     print b % 8
+
+    fn step_problem(a: u64) -> u8 {
+        let b = (a % 8) ^ 3;
+        let c = a / 2_u64.pow(b as u32);
+        let b = b ^ c;
+        let b = b ^ 3;
+        (b % 8) as u8
+    }
+
+    let (_, mut program) = parse_input_data(data).expect("Failed to parse input data");
+
+    fn find(example: bool, a: u64, col: usize, program: &Vec<u8>, solutions: &mut Vec<i64>) {
+        if example {
+            if step_example(a) != program[program.len() - 1 - col] {
+                return;
+            }
+        } else if step_problem(a) != program[program.len() - 1 - col] {
+            return;
+        }
+        if col == program.len() - 1 {
+            solutions.push(a as i64);
+            return;
+        }
+        for b in 0..=7 {
+            find(example, a * 8 + b, col + 1, program, solutions);
+        }
+    }
+
+    let is_example = program.register_a == 2024;
+
+    if program.register_a != 2024 && program.register_a != 51342988 {
+        panic!("Sorry, I only hardcoded the example and my solution");
+    }
+
+    let mut solutions = Vec::new();
+    for a in 0..=7 {
+        find(is_example, a, 0, &program.program, &mut solutions);
+    }
+
+    // sort by increasing order
+    solutions.sort_unstable();
+
+    // find the first solution that matches the output
+    for solution in solutions {
+        program.reset();
+        program.register_a = solution;
+        program.execute();
+        if program.output == program.program {
+            return solution;
+        }
+    }
+
+    panic!("No solution found");
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = "Register A: 729
+    const EXAMPLE_PART_1: &str = "Register A: 729
 Register B: 0
 Register C: 0
 
 Program: 0,1,5,4,3,0";
+
+    const EXAMPLE_PART_2: &str = "Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0";
 
     #[test]
     fn test_day_17_program() {
@@ -279,11 +400,11 @@ Program: 0,1,5,4,3,0";
 
     #[test]
     fn test_day_17_part_1() {
-        assert_eq!(day_17_part_1(EXAMPLE), 42);
+        assert_eq!(day_17_part_1(EXAMPLE_PART_1), 42);
     }
 
     #[test]
     fn test_day_17_part_2() {
-        assert_eq!(day_17_part_2(EXAMPLE), 42);
+        assert_eq!(day_17_part_2(EXAMPLE_PART_2), 117440);
     }
 }
