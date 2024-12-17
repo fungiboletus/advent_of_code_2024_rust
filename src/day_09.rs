@@ -224,7 +224,6 @@ mod tests {
         assert_eq!(day_09_part_2("354631466260"), 1325); // works
         assert_eq!(day_09_part_2("252"), 5); // works
         assert_eq!(day_09_part_2("171010402"), 88); // works
-        println!("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
         assert_eq!(day_09_part_2("597689906"), 1840); // dosen't work \o/
     }
 }
