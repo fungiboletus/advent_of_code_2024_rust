@@ -309,7 +309,9 @@ pub fn day_16_part_2(data: &str) -> i64 {
                     visited[[new_row, new_col, direction as usize]]
                 );*/
 
-                if visited[[new_row, new_col, direction as usize]] == Some(expected_score) {
+                if visited[[new_row, new_col, direction as usize]] == Some(expected_score)
+                    && !visited_again[[new_row, new_col]]
+                {
                     pile.push((new_row, new_col, direction, expected_score));
                 }
             }
