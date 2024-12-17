@@ -239,8 +239,10 @@ pub fn day_17_part_2(data: &str) -> i64 {
     let (_, mut program) = parse_input_data(data).expect("Failed to parse input data");
 
     let mut step_program = program.clone();
-    if step_program.program[step_program.program.len() - 2] != 3 {
-        panic!("The program is not the expected one, it should finish with a jnz instruction.");
+    if step_program.program[step_program.program.len() - 2] != 3
+        || step_program.program[step_program.program.len() - 1] != 0
+    {
+        panic!("The program is not the expected one, it should finish with a jnz instruction to 0");
     }
     // remove the last 2 instructions
     step_program
