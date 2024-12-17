@@ -319,6 +319,13 @@ Register C: 0
 
 Program: 0,3,5,4,3,0";
 
+    // https://www.reddit.com/r/adventofcode/comments/1hggduo/2024_day_17_part_2_a_challenging_test_case/
+    const HARD_INPUT: &str = "Register A: 12345678
+Register B: 0
+Register C: 0
+
+Program: 2,4,1,0,7,5,1,5,0,3,4,5,5,5,3,0";
+
     #[test]
     fn test_day_17_program() {
         // If register C contains 9, the program 2,6 would set register B to 1.
@@ -386,5 +393,10 @@ Program: 0,3,5,4,3,0";
     #[test]
     fn test_day_17_part_2() {
         assert_eq!(day_17_part_2(EXAMPLE_PART_2), 117440);
+    }
+
+    #[test]
+    fn test_day_17_part_2_hard() {
+        assert_eq!(day_17_part_2(HARD_INPUT), 202797954918051);
     }
 }
