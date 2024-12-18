@@ -1,3 +1,6 @@
+use paste::paste;
+use std::fmt::Display;
+
 mod day_01;
 mod day_02;
 mod day_03;
@@ -17,10 +20,12 @@ mod day_16;
 mod day_17;
 mod day_18;
 
-fn execute_day<F, G>(day: &str, data: &str, part_1: F, part_2: G)
+fn execute_day<F, G, D1, D2>(day: &str, data: &str, part_1: F, part_2: G)
 where
-    F: Fn(&str) -> i64,
-    G: Fn(&str) -> i64,
+    F: Fn(&str) -> D1,
+    G: Fn(&str) -> D2,
+    D1: Display,
+    D2: Display,
 {
     let now = std::time::Instant::now();
     println!("Day {}, part 1: {}", day, part_1(data));
@@ -38,8 +43,6 @@ macro_rules! execute_day {
         );
     };
 }
-
-use paste::paste;
 
 macro_rules! execute_days {
     ($($day:literal),*) => {

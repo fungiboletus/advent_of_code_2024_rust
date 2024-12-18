@@ -218,21 +218,19 @@ fn parse_input_data(data: &str) -> IResult<&str, Program> {
     )(data)
 }
 
-pub fn day_17_part_1(data: &str) -> i64 {
+pub fn day_17_part_1(data: &str) -> String {
     let (_, program) = parse_input_data(data).expect("Failed to parse input data");
 
     let mut program = program;
     program.execute();
 
     // join the output with commas
-    let output = program
+    program
         .output
         .iter()
         .map(|n| n.to_string())
         .collect::<Vec<String>>()
-        .join(",");
-    println!("Day 17, part 1 output: {}", output);
-    42
+        .join(",")
 }
 
 pub fn day_17_part_2(data: &str) -> i64 {
@@ -387,7 +385,7 @@ Program: 2,4,1,0,7,5,1,5,0,3,4,5,5,5,3,0";
 
     #[test]
     fn test_day_17_part_1() {
-        assert_eq!(day_17_part_1(EXAMPLE_PART_1), 42);
+        assert_eq!(day_17_part_1(EXAMPLE_PART_1), "4,6,3,5,6,3,5,2,1,0");
     }
 
     #[test]
