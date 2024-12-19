@@ -93,8 +93,6 @@ pub fn day_19_part_2(data: &str) -> usize {
         .map(|p| p.iter().collect::<String>())
         .collect::<Vec<String>>();
 
-    let patterns_set = patterns.iter().collect::<std::collections::HashSet<_>>();
-
     // simple version
     /*designs
     .iter()
@@ -105,6 +103,8 @@ pub fn day_19_part_2(data: &str) -> usize {
     // found an optimisation that is pretty verbose but I like it
     // https://www.reddit.com/r/adventofcode/comments/1hhtrgj/comment/m2u6ubd/
     // Idea is to work on a sliding window of 8 characters
+
+    let patterns_set = patterns.iter().collect::<std::collections::HashSet<_>>();
     designs
         .iter()
         .map(|d| {
