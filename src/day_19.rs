@@ -35,49 +35,31 @@ fn parse_input_data(data: &str) -> IResult<&str, (Vec<Pattern>, Vec<Pattern>)> {
     )(data)
 }
 
-// Nom 8 should support this and has its first beta a few days ago
-// but we stick to nom 7 and implement it ourselves
-fn alt_on_vec<F, Input, Output, Error>(
-    mut parsers: Vec<F>,
-) -> impl FnMut(Input) -> IResult<Input, Output, Error>
-where
-    Input: Clone, // + InputIter + InputTake + InputLength,
-    Error: ParseError<Input>,
-    F: Parser<Input, Output, Error>,
-{
-    move |input: Input| {
-        for parser in parsers.iter_mut() {
-            let i = input.clone();
-            match parser.parse(i) {
-                Ok(result) => return Ok(result),
-                Err(_) => continue,
-            }
+pub fn day_19_part_1(data: &str) -> usize {
+    let (_, (patterns, designs)) = parse_input_data(data).expect("Failed to parse input data");
+
+    let mut regex_string = String::new();
+    regex_string.push_str("^(");
+
+    for pattern in patterns {
+        for c in pattern {
+            regex_string.push(c);
         }
-        Err(nom::Err::Error(Error::from_error_kind(
-            input,
-            nom::error::ErrorKind::Alt,
-        )))
+        regex_string.push('|');
     }
-}
+    // Remove the last '|'
+    regex_string.pop();
+    regex_string.push_str(")*$");
 
-pub fn day_19_part_1(data: &str) -> i64 {
-    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
-    println!("{:?}", data);
+    let regex = regex::Regex::new(&regex_string).expect("Failed to create regex");
 
-    let a = tag::<&str, &str, nom::error::Error<&str>>("a");
-    let b = tag::<&str, &str, nom::error::Error<&str>>("b");
-    let c = tag::<&str, &str, nom::error::Error<&str>>("c");
-
-    //alt((a, b, c))("c");
-    let parsers = vec![a, b, c];
-    let mut alt_parser = alt_on_vec(parsers);
-
-    let result = alt_parser("c");
-    println!("{:?}", result);
-    let result = alt_parser("d");
-    println!("{:?}", result);
-
-    42
+    designs
+        .iter()
+        .filter(|d| {
+            let string = d.iter().collect::<String>();
+            regex.is_match(&string)
+        })
+        .count()
 }
 
 pub fn day_19_part_2(data: &str) -> i64 {
