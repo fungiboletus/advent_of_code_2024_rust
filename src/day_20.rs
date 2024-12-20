@@ -1,6 +1,37 @@
 /*
-    Comments.
+    I did implement part 1 with a A* algorithm and a fancy
+    system to break walls and find the best shortcuts.
+
+    I did run in about 1.5s, which was too slow for a part 1.
+
+    I read a bit more about the problem and found that it wasn't
+    a maze problem, as there is only a single path from start to
+    exit.
+
+    So I reimplemented the solution with a faster algorithm
+    that runs very quickly.
+
+    The idea is to compute the accumulative path length, and
+    then check every wall if I can find a shortcut by crossing
+    the wall from top to bottom, bottom to top, left to right
+    or right to left.
+
+    Part 2 was a lot more annoying and I struggled a lot with
+    quite a few one off errors. Especially because the example
+    wasn't the same grid size than the actual input data.
+
+    I had two main issues:
+        - I forgot that the start of a shortcut
+    can be below or on the right of the end of the shortcut.
+        - I was visiting too far as I forgot that going
+        -20 to +20 on both axis did give a manhattan distance
+        above 20, which is kinda an obvious statement in
+        the problem description.
+
+    Overall, part 2 wasn't that hard, but I really struggle
+    working with indices and offsets late at night.
 */
+use itertools::Itertools;
 use ndarray::{Array2, ArrayView2};
 use nom::{
     branch::alt,
@@ -10,6 +41,8 @@ use nom::{
     multi::{many1, separated_list1},
     IResult,
 };
+use rayon::iter::ParallelBridge;
+use rayon::iter::ParallelIterator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Cell {
@@ -141,8 +174,96 @@ pub fn day_20_part_1(data: &str) -> usize {
     compute_part_1(data, 100)
 }
 
-pub fn day_20_part_2(data: &str) -> i64 {
-    42
+#[inline]
+fn manhattan_distance(a: (usize, usize), b: (usize, usize)) -> usize {
+    a.0.abs_diff(b.0) + a.1.abs_diff(b.1)
+}
+
+fn compute_part_2(data: &str, threshold: usize) -> usize {
+    let (_, map) = parse_input_data(data).expect("Failed to parse input data");
+    let (start, exit) = find_start_and_exit(&map);
+    let map_view = map.view();
+    let path_lengths = compute_path_lengths(&map_view, start, exit);
+    let map_size = map.dim();
+    let (nrows, ncols) = map_size;
+    let window_cols = 21.min(ncols);
+    let window_rows = 21.min(nrows);
+
+    path_lengths
+        .indexed_iter()
+        .par_bridge()
+        .flat_map(|(position_start, window_start)| {
+            //let mut return_vec: SmallVec<((usize, usize), (usize, usize)), 4> = SmallVec::new();
+            let mut return_vec: Vec<((usize, usize), (usize, usize))> = Vec::new();
+
+            let window_start = if let Some(window_start) = window_start {
+                *window_start
+            } else {
+                return return_vec;
+            };
+
+            let (start_row, start_col) = position_start;
+
+            let window_rows = window_rows as isize;
+            let window_cols = window_cols as isize;
+            let neg_window_rows = -(window_rows);
+            let neg_window_cols = -(window_cols);
+            for drow in neg_window_rows..window_rows {
+                for dcol in neg_window_cols..window_cols {
+                    let end_row: isize = start_row as isize + drow;
+                    let end_col: isize = start_col as isize + dcol;
+
+                    if end_row < 0
+                        || end_col < 0
+                        || end_row >= nrows as isize
+                        || end_col >= ncols as isize
+                    {
+                        continue;
+                    }
+
+                    let end_row = end_row as usize;
+                    let end_col = end_col as usize;
+
+                    let position_end = (end_row, end_col);
+
+                    if position_start == position_end {
+                        continue;
+                    }
+
+                    // max distance is 20
+                    if manhattan_distance(position_start, position_end) > 20 {
+                        continue;
+                    }
+
+                    let window_end = path_lengths[position_end];
+
+                    if let Some(window_end) = window_end {
+                        // Don't go back
+                        if window_end > window_start {
+                            let distance_with_shortcut = window_end - window_start;
+                            let manhattan_distance =
+                                manhattan_distance(position_start, position_end);
+
+                            let saved = distance_with_shortcut - manhattan_distance;
+
+                            if saved >= threshold {
+                                return_vec.push((position_start, position_end));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return_vec
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .unique()
+        .count()
+}
+
+pub fn day_20_part_2(data: &str) -> usize {
+    compute_part_2(data, 100)
 }
 
 #[cfg(test)]
@@ -169,10 +290,17 @@ mod tests {
     fn test_day_20_part_1() {
         assert_eq!(compute_part_1(EXAMPLE, 0), 44);
         assert_eq!(compute_part_1(EXAMPLE, 20), 5);
+        assert_eq!(day_20_part_1(EXAMPLE), 0);
     }
 
     #[test]
     fn test_day_20_part_2() {
-        assert_eq!(day_20_part_2(EXAMPLE), 42);
+        assert_eq!(compute_part_2(EXAMPLE, 80), 0);
+        assert_eq!(compute_part_2(EXAMPLE, 76), 3);
+        assert_eq!(compute_part_2(EXAMPLE, 74), 7);
+        assert_eq!(compute_part_2(EXAMPLE, 72), 29);
+        assert_eq!(compute_part_2(EXAMPLE, 70), 41);
+        assert_eq!(compute_part_2(EXAMPLE, 50), 285);
+        assert_eq!(day_20_part_2(EXAMPLE), 0);
     }
 }
