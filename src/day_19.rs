@@ -18,6 +18,8 @@ use nom::{
     sequence::tuple,
     IResult,
 };
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::ParallelIterator;
 
 type Pattern = Vec<char>;
 
@@ -60,7 +62,7 @@ pub fn day_19_part_1(data: &str) -> usize {
     let regex = regex::Regex::new(&regex_string).expect("Failed to create regex");
 
     designs
-        .iter()
+        .par_iter()
         .filter(|d| {
             let string = d.iter().collect::<String>();
             regex.is_match(&string)
@@ -106,7 +108,7 @@ pub fn day_19_part_2(data: &str) -> usize {
 
     let patterns_set = patterns.iter().collect::<std::collections::HashSet<_>>();
     designs
-        .iter()
+        .par_iter()
         .map(|d| {
             let len = d.len();
             let mut count = vec![0; len];
