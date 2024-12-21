@@ -31,7 +31,6 @@
     Overall, part 2 wasn't that hard, but I really struggle
     working with indices and offsets late at night.
 */
-use itertools::Itertools;
 use ndarray::{Array2, ArrayView2};
 use nom::{
     branch::alt,
@@ -186,30 +185,30 @@ fn compute_part_2(data: &str, threshold: usize) -> usize {
     let path_lengths = compute_path_lengths(&map_view, start, exit);
     let map_size = map.dim();
     let (nrows, ncols) = map_size;
-    let window_cols = 21.min(ncols);
-    let window_rows = 21.min(nrows);
+    let window_size = 21_isize;
+    let neg_window_size = -21_isize;
 
     path_lengths
         .indexed_iter()
         .par_bridge()
-        .flat_map(|(position_start, window_start)| {
+        .map(|(position_start, window_start)| {
             //let mut return_vec: SmallVec<((usize, usize), (usize, usize)), 4> = SmallVec::new();
-            let mut return_vec: Vec<((usize, usize), (usize, usize))> = Vec::new();
 
             let window_start = if let Some(window_start) = window_start {
                 *window_start
             } else {
-                return return_vec;
+                return 0;
             };
 
             let (start_row, start_col) = position_start;
 
-            let window_rows = window_rows as isize;
-            let window_cols = window_cols as isize;
-            let neg_window_rows = -(window_rows);
-            let neg_window_cols = -(window_cols);
-            for drow in neg_window_rows..window_rows {
-                for dcol in neg_window_cols..window_cols {
+            let mut count = 0;
+
+            for drow in neg_window_size..window_size {
+                for dcol in neg_window_size..window_size {
+                    if drow.abs() + dcol.abs() >= window_size {
+                        continue;
+                    }
                     let end_row: isize = start_row as isize + drow;
                     let end_col: isize = start_col as isize + dcol;
 
@@ -230,10 +229,10 @@ fn compute_part_2(data: &str, threshold: usize) -> usize {
                         continue;
                     }
 
-                    // max distance is 20
-                    if manhattan_distance(position_start, position_end) > 20 {
-                        continue;
-                    }
+                    // // max distance is 20
+                    // if manhattan_distance(position_start, position_end) > 20 {
+                    //     continue;
+                    // }
 
                     let window_end = path_lengths[position_end];
 
@@ -247,19 +246,16 @@ fn compute_part_2(data: &str, threshold: usize) -> usize {
                             let saved = distance_with_shortcut - manhattan_distance;
 
                             if saved >= threshold {
-                                return_vec.push((position_start, position_end));
+                                count += 1;
                             }
                         }
                     }
                 }
             }
 
-            return_vec
+            count
         })
-        .collect::<Vec<_>>()
-        .into_iter()
-        .unique()
-        .count()
+        .sum()
 }
 
 pub fn day_20_part_2(data: &str) -> usize {
@@ -302,5 +298,7 @@ mod tests {
         assert_eq!(compute_part_2(EXAMPLE, 70), 41);
         assert_eq!(compute_part_2(EXAMPLE, 50), 285);
         assert_eq!(day_20_part_2(EXAMPLE), 0);
+
+        // 961364
     }
 }
