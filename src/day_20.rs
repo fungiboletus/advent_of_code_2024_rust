@@ -40,7 +40,7 @@ use nom::{
     multi::{many1, separated_list1},
     IResult,
 };
-use rayon::iter::ParallelBridge;
+use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,7 +91,7 @@ fn compute_path_lengths(
     map: &ArrayView2<Cell>,
     start: (usize, usize),
     end: (usize, usize),
-) -> Array2<Option<usize>> {
+) -> (Array2<Option<usize>>, Vec<((usize, usize), usize)>) {
     let map_size = map.dim();
     let (nrows, ncols) = map_size;
 
@@ -100,9 +100,11 @@ fn compute_path_lengths(
     let mut current_length = 0;
 
     let mut path_lengths = Array2::from_elem(map_size, None);
+    let mut lol = Vec::new();
 
     while current != end {
         path_lengths[current] = Some(current_length);
+        lol.push((current, current_length));
         current_length += 1;
 
         let (row, col) = current;
@@ -127,14 +129,15 @@ fn compute_path_lengths(
     }
 
     path_lengths[end] = Some(current_length);
-    path_lengths
+    lol.push((end, current_length));
+    (path_lengths, lol)
 }
 
 fn compute_part_1(data: &str, threshold: usize) -> usize {
     let (_, map) = parse_input_data(data).expect("Failed to parse input data");
     let (start, exit) = find_start_and_exit(&map);
     let map_view = map.view();
-    let path_lengths = compute_path_lengths(&map_view, start, exit);
+    let (path_lengths, _) = compute_path_lengths(&map_view, start, exit);
 
     //let non_cheating_length = path_lengths[exit].expect("Failed to find a path without cheats");
 
@@ -182,23 +185,23 @@ fn compute_part_2(data: &str, threshold: usize) -> usize {
     let (_, map) = parse_input_data(data).expect("Failed to parse input data");
     let (start, exit) = find_start_and_exit(&map);
     let map_view = map.view();
-    let path_lengths = compute_path_lengths(&map_view, start, exit);
+    let (path_lengths, perfect_path) = compute_path_lengths(&map_view, start, exit);
     let map_size = map.dim();
     let (nrows, ncols) = map_size;
     let window_size = 21_isize;
     let neg_window_size = -21_isize;
 
-    path_lengths
-        .indexed_iter()
-        .par_bridge()
+    perfect_path
+        .par_iter()
         .map(|(position_start, window_start)| {
-            //let mut return_vec: SmallVec<((usize, usize), (usize, usize)), 4> = SmallVec::new();
-
-            let window_start = if let Some(window_start) = window_start {
+            /*let window_start = if let Some(window_start) = window_start {
                 *window_start
             } else {
                 return 0;
-            };
+            };*/
+
+            let position_start = *position_start;
+            let window_start = *window_start;
 
             let (start_row, start_col) = position_start;
 
