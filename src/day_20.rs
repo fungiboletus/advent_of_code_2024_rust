@@ -30,6 +30,11 @@
 
     Overall, part 2 wasn't that hard, but I really struggle
     working with indices and offsets late at night.
+
+    I optimised slightly after a night of sleep, it could be
+    much more optimised by using a better datastructure to
+    prevent checking so many cells in the 2D matrix, but
+    this is good enough for now and I'm done with this puzzle.
 */
 use ndarray::{Array2, ArrayView2};
 use nom::{
@@ -87,6 +92,7 @@ fn find_start_and_exit(map: &Array2<Cell>) -> ((usize, usize), (usize, usize)) {
     )
 }
 
+#[allow(clippy::type_complexity)]
 fn compute_path_lengths(
     map: &ArrayView2<Cell>,
     start: (usize, usize),
