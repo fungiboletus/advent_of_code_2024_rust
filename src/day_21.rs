@@ -22,7 +22,7 @@
     Part 2 was then solved like part 1. It's somewhat fast.
 
     I wouldn't have solved it without the guide. I knew it was something
-    related to find patterns in the sequences and doing something clever,
+    about finding patterns in the sequences and doing something clever,
     but I didn't have the time nor the motivation to do it.
 
     Hard puzzle, happy to have it done with the solution.
