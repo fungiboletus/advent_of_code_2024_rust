@@ -37,8 +37,6 @@ use nom::{
     sequence::tuple,
     IResult,
 };
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::ParallelIterator;
 use std::collections::HashMap;
 
 /*
@@ -325,10 +323,7 @@ fn parse_input_data(data: &str) -> IResult<&str, Vec<(String, usize)>> {
     length
 }*/
 
-#[cached(
-    key = "String",
-    convert = "{ keys.to_string() + \"|\" + &depth.to_string() }"
-)]
+#[cached(key = "(String, usize)", convert = "{ (keys.clone(), depth) }")]
 fn shortest_sequence(keys: String, depth: usize, paths: &PadPaths) -> usize {
     if depth == 0 {
         return keys.len();
@@ -355,7 +350,7 @@ fn compute_day_21(data: &str, depth: usize) -> usize {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
     let keypad_paths = build_keypad_paths();
     let directional_pad_paths = build_directional_pad_paths();
-    data.par_iter()
+    data.iter()
         .map(|(sequence, value)| {
             let mut shortest = usize::MAX;
             let keypad_sequences = compute_minimum_pad_sequences(sequence, &keypad_paths);
