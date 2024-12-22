@@ -1,7 +1,8 @@
 /*
     A challenging puzzle.
 
-    I'm happy with the solution I slowly came up to. I didn't go sideway.
+    I'm happy with the solution I slowly came up to. I didn't go sideway
+    that much.
 
     However, I lost motivation and time to finish on day 21. I realised that I indeed had to test all possible paths and not just
     go with a short path on the num pad. It did sound cumbersome and it was
@@ -24,8 +25,7 @@
     related to find patterns in the sequences and doing something clever,
     but I didn't have the time nor the motivation to do it.
 
-    Hard puzzle, happy to have it done with the solution. At least
-    I didn't go sideway too much.
+    Hard puzzle, happy to have it done with the solution.
 */
 
 use cached::proc_macro::cached;
