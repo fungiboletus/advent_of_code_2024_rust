@@ -14,7 +14,8 @@
 
     I assume that some bespoke algorithms could be faster for the advent of
     code inputs, but the Wikipedia article said that the Bron–Kerbosch algorithm
-    with pivot is a good choice in practice.
+    with pivot is a good choice in practice. Robson's algorithm is faster
+    but it looks overly complex.
 */
 
 use std::collections::HashSet;
