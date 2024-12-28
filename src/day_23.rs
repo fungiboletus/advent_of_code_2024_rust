@@ -1,9 +1,25 @@
 /*
-    Comments.
+    A relatively nice day on some graphs.
+
+    Part 1 was about finding triangles in the graph. I looked for existing
+    algortihms as I expected that it's mostly something that you can't come
+    up on the spot.
+
+    Part 2 was about the maximum clique problem. I didn't know about this
+    problem so it was interesting to learn about it. I then implemented an
+    existing algorithm without trying to do anything fancy. I didn't find
+    a rust crate to do this, so I asked Gemini-Exp-1206 to implement
+    the Bron–Kerbosch algorithm with pivot.
+    I hope you don't mind. I still did some adjustments and refinments.
+
+    I assume that some bespoke algorithms could be faster for the advent of
+    code inputs, but the Wikipedia article said that the Bron–Kerbosch algorithm
+    with pivot is a good choice in practice.
 */
 
 use std::collections::HashSet;
 
+use itertools::Itertools;
 use nom::{
     character::{
         complete::{char, line_ending, satisfy},
@@ -72,15 +88,15 @@ impl Identifier {
         (self.0 as u32 - 'a' as u32) * 26 + (self.1 as u32 - 'a' as u32)
     }
 
-    fn from_usize(value: usize) -> Self {
+    fn from_u32(value: usize) -> Self {
         let a = (value / 26 + 'a' as usize) as u8 as char;
         let b = (value % 26 + 'a' as usize) as u8 as char;
         Self(a, b)
     }
 }
 
-fn build_graph(data: &[Connection]) -> UnGraph<usize, ()> {
-    UnGraph::<usize, ()>::from_edges(data.iter().map(|c| (c.0.as_u32(), c.1.as_u32())))
+fn build_graph(data: &[Connection]) -> UnGraph<u32, ()> {
+    UnGraph::<u32, ()>::from_edges(data.iter().map(|c| (c.0.as_u32(), c.1.as_u32())))
 }
 
 pub fn day_23_part_1(data: &str) -> i64 {
@@ -92,7 +108,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
         .node_identifiers()
         .par_bridge()
         .map(|node| {
-            let node_identifier = Identifier::from_usize(node.index());
+            let node_identifier = Identifier::from_u32(node.index());
             let node_has_t = node_identifier.0 == 't';
 
             let mut triangles_count = 0;
@@ -101,7 +117,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
             let node_neighbors_set: HashSet<NodeIndex> = node_neighbors.clone().collect();
             for neighbor in node_neighbors {
                 if neighbor > node {
-                    let neighbor_identifier = Identifier::from_usize(neighbor.index());
+                    let neighbor_identifier = Identifier::from_u32(neighbor.index());
                     let neighbor_has_t = neighbor_identifier.0 == 't';
                     let neighbor_neighbors_set: HashSet<NodeIndex> =
                         graph.neighbors(neighbor).collect();
@@ -109,7 +125,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
                     for common_neighbor in common_neighbors {
                         if *common_neighbor > neighbor {
                             let common_neighbor_identifier =
-                                Identifier::from_usize(common_neighbor.index());
+                                Identifier::from_u32(common_neighbor.index());
                             let common_neighbor_has_t = common_neighbor_identifier.0 == 't';
                             if node_has_t || neighbor_has_t || common_neighbor_has_t {
                                 triangles_count += 1;
@@ -124,15 +140,101 @@ pub fn day_23_part_1(data: &str) -> i64 {
         .sum()
 }
 
+fn bron_kerbosch_with_pivot_recursive(
+    graph: &UnGraph<u32, ()>,
+    current_clique: &mut HashSet<NodeIndex>,
+    candidate_nodes: HashSet<NodeIndex>,
+    excluded_nodes: HashSet<NodeIndex>,
+    maximal_cliques: &mut Vec<HashSet<NodeIndex>>,
+) {
+    if candidate_nodes.is_empty() && excluded_nodes.is_empty() {
+        maximal_cliques.push(current_clique.clone());
+        return;
+    }
+
+    let pivot_node = candidate_nodes
+        .iter()
+        .chain(&excluded_nodes)
+        .max_by_key(|&node| {
+            graph
+                .neighbors(*node)
+                .filter(|neighbor| candidate_nodes.contains(neighbor))
+                .count()
+        })
+        .cloned()
+        .unwrap_or_else(|| *candidate_nodes.iter().next().unwrap());
+
+    let mut candidate_nodes = candidate_nodes;
+    let mut excluded_nodes = excluded_nodes;
+
+    for selected_node in candidate_nodes
+        .clone()
+        .difference(&graph.neighbors(pivot_node).collect())
+    {
+        let neighbors_of_selected: HashSet<NodeIndex> = graph.neighbors(*selected_node).collect();
+        let mut new_clique = current_clique.clone();
+        new_clique.insert(*selected_node);
+
+        let new_candidate_nodes = candidate_nodes
+            .intersection(&neighbors_of_selected)
+            .cloned()
+            .collect();
+        let new_excluded_nodes = excluded_nodes
+            .intersection(&neighbors_of_selected)
+            .cloned()
+            .collect();
+
+        bron_kerbosch_with_pivot_recursive(
+            graph,
+            &mut new_clique,
+            new_candidate_nodes,
+            new_excluded_nodes,
+            maximal_cliques,
+        );
+
+        candidate_nodes.remove(selected_node);
+        excluded_nodes.insert(*selected_node);
+    }
+}
+
+fn find_all_maximal_cliques(graph: &UnGraph<u32, ()>) -> Vec<HashSet<NodeIndex>> {
+    let mut maximal_cliques: Vec<HashSet<NodeIndex>> = Vec::new();
+    let mut current_clique = HashSet::new();
+    let candidate_nodes: HashSet<NodeIndex> = graph.node_indices().collect();
+    let excluded_nodes = HashSet::new();
+
+    bron_kerbosch_with_pivot_recursive(
+        graph,
+        &mut current_clique,
+        candidate_nodes,
+        excluded_nodes,
+        &mut maximal_cliques,
+    );
+
+    maximal_cliques
+}
+
+fn find_maximal_clique(graph: &UnGraph<u32, ()>) -> Option<HashSet<NodeIndex>> {
+    let maximal_cliques = find_all_maximal_cliques(graph);
+    maximal_cliques
+        .iter()
+        .max_by_key(|clique| clique.len())
+        .cloned()
+}
+
 pub fn day_23_part_2(data: &str) -> String {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
     let graph = build_graph(&data);
-    /*println!(
-        "{:?}",
-        petgraph::dot::Dot::with_config(&graph, &[petgraph::dot::Config::EdgeNoLabel])
-    );*/
 
-    "lol".to_string()
+    let maximal_clique =
+        find_maximal_clique(&graph).expect("No maximal clique found, is the graph empty?");
+
+    maximal_clique
+        .iter()
+        .map(|node| Identifier::from_u32(node.index()))
+        .sorted_unstable()
+        .map(|identifier| identifier.to_string())
+        .join(",")
 }
 
 #[cfg(test)]
