@@ -15,9 +15,8 @@ use nom::{
     IResult,
 };
 use petgraph::{
-    algo::connected_components,
-    prelude::UnGraphMap,
-    visit::{IntoNodeIdentifiers, IntoNodeReferences},
+    graph::{NodeIndex, UnGraph},
+    visit::IntoNodeIdentifiers,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
@@ -68,73 +67,53 @@ fn parse_input_data(data: &str) -> IResult<&str, Vec<Connection>> {
     separated_list0(line_ending, parse_connection)(data)
 }
 
-fn build_graph(data: &[Connection]) -> UnGraphMap<Identifier, ()> {
-    UnGraphMap::<Identifier, ()>::from_edges(data.iter().map(|c| (c.0, c.1)))
+impl Identifier {
+    fn as_u32(&self) -> u32 {
+        (self.0 as u32 - 'a' as u32) * 26 + (self.1 as u32 - 'a' as u32)
+    }
+
+    fn from_usize(value: usize) -> Self {
+        let a = (value / 26 + 'a' as usize) as u8 as char;
+        let b = (value % 26 + 'a' as usize) as u8 as char;
+        Self(a, b)
+    }
+}
+
+fn build_graph(data: &[Connection]) -> UnGraph<usize, ()> {
+    UnGraph::<usize, ()>::from_edges(data.iter().map(|c| (c.0.as_u32(), c.1.as_u32())))
 }
 
 pub fn day_23_part_1(data: &str) -> i64 {
     let (_, data) = parse_input_data(data).expect("Failed to parse input data");
-    //println!("{:?}", data);
-
-    //let graph = UnGraph::<Identifier, ()>::from_edges(data.iter().map(|c| (c.0, c.1)));
-
-    /*let mut graph = UnGraph::<&str, ()>::default();
-    let a = graph.add_node("Node A");
-    let b = graph.add_node("Node B");
-
-    let mut graph = UnGraph::<Identifier, ()>::default();
-    let a = graph.add_node(Identifier('a', 'b'));
-    let b = graph.add_node(Identifier('b', 'c'));*/
-
-    /*let graph =
-    UnGraph::<Identifier, ()>::from_edges(
-        vec![(Identifier('a', 'b'), Identifier('b', 'c'))]
-    );*/
-
-    /*let graph = UnGraphMap::<Identifier, ()>::from_edges(vec![(
-        Identifier('a', 'b'),
-        Identifier('b', 'c'),
-    )]);*/
 
     let graph = build_graph(&data);
 
-    //println!("{:?}", graph);
-
-    //let lol = connected_components(&graph);
-    //println!("{:?}", lol);
-
-    /*println!(
-        "{:?}",
-        petgraph::dot::Dot::with_config(&graph, &[petgraph::dot::Config::EdgeNoLabel])
-    );*/
-
-    //let mut triangles_count = 0;
-    //let mut triangles: Vec<(Identifier, Identifier, Identifier)> = Vec::new();
-
-    //for node in graph.nodes() {
     graph
-        .nodes()
+        .node_identifiers()
         .par_bridge()
         .map(|node| {
-            //println!("{:?}", node);
+            let node_identifier = Identifier::from_usize(node.index());
+            let node_has_t = node_identifier.0 == 't';
 
             let mut triangles_count = 0;
             // get neighbors
             let node_neighbors = graph.neighbors(node);
-            let node_neighbors_set: HashSet<Identifier> = node_neighbors.clone().collect();
+            let node_neighbors_set: HashSet<NodeIndex> = node_neighbors.clone().collect();
             for neighbor in node_neighbors {
-                //println!("  {:?}", neighbor);
                 if neighbor > node {
-                    let neighbor_neighbors_set: HashSet<Identifier> =
+                    let neighbor_identifier = Identifier::from_usize(neighbor.index());
+                    let neighbor_has_t = neighbor_identifier.0 == 't';
+                    let neighbor_neighbors_set: HashSet<NodeIndex> =
                         graph.neighbors(neighbor).collect();
                     let common_neighbors = node_neighbors_set.intersection(&neighbor_neighbors_set);
                     for common_neighbor in common_neighbors {
-                        if *common_neighbor > neighbor
-                            && (node.0 == 't' || neighbor.0 == 't' || common_neighbor.0 == 't')
-                        {
-                            //println!("    {:?}", common_neighbor);
-                            triangles_count += 1;
-                            //triangles.push((node, neighbor, *common_neighbor));
+                        if *common_neighbor > neighbor {
+                            let common_neighbor_identifier =
+                                Identifier::from_usize(common_neighbor.index());
+                            let common_neighbor_has_t = common_neighbor_identifier.0 == 't';
+                            if node_has_t || neighbor_has_t || common_neighbor_has_t {
+                                triangles_count += 1;
+                            }
                         }
                     }
                 }
@@ -143,14 +122,17 @@ pub fn day_23_part_1(data: &str) -> i64 {
             triangles_count
         })
         .sum()
-
-    //println!("{:?}", triangles);
-
-    //triangles_count
 }
 
-pub fn day_23_part_2(data: &str) -> i64 {
-    42
+pub fn day_23_part_2(data: &str) -> String {
+    let (_, data) = parse_input_data(data).expect("Failed to parse input data");
+    let graph = build_graph(&data);
+    /*println!(
+        "{:?}",
+        petgraph::dot::Dot::with_config(&graph, &[petgraph::dot::Config::EdgeNoLabel])
+    );*/
+
+    "lol".to_string()
 }
 
 #[cfg(test)]
@@ -197,6 +179,6 @@ td-yn";
 
     #[test]
     fn test_day_23_part_2() {
-        assert_eq!(day_23_part_2(EXAMPLE), 42);
+        assert_eq!(day_23_part_2(EXAMPLE), "co,de,ka,ta");
     }
 }
