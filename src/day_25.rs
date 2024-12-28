@@ -7,8 +7,8 @@ use nom::{
     bytes::complete::tag,
     character::complete::{line_ending, one_of},
     combinator::map,
-    multi::{count, separated_list0, separated_list1},
-    sequence::tuple,
+    multi::{count, separated_list0},
+    sequence::{delimited, terminated, tuple},
     IResult,
 };
 
@@ -23,21 +23,15 @@ struct Problem {
 
 fn parse_key(input: &str) -> IResult<&str, Key> {
     map(
-        tuple((
-            tag("....."),
-            line_ending,
-            separated_list1(line_ending, count(one_of(".#"), 5)),
-        )),
-        |(_, _, key_pattern)| {
+        delimited(
+            tuple((tag("....."), line_ending)),
+            count(terminated(count(one_of(".#"), 5), line_ending), 5),
+            tag("#####"),
+        ),
+        |key_pattern| {
             let mut key = [0; 5];
 
-            if key_pattern.len() <= 1 {
-                return key;
-            }
-
-            assert_eq!(key_pattern.len(), 6);
-
-            for line in &key_pattern[..5] {
+            for line in key_pattern {
                 for (i, c) in line.iter().enumerate() {
                     if *c == '#' {
                         key[i] += 1;
@@ -52,17 +46,15 @@ fn parse_key(input: &str) -> IResult<&str, Key> {
 
 fn parse_lock(input: &str) -> IResult<&str, Lock> {
     map(
-        tuple((
-            tag("#####"),
-            line_ending,
-            separated_list1(line_ending, count(one_of(".#"), 5)),
-        )),
-        |(_, _, lock_pattern)| {
+        delimited(
+            tuple((tag("#####"), line_ending)),
+            count(terminated(count(one_of(".#"), 5), line_ending), 5),
+            tag("....."),
+        ),
+        |lock_pattern| {
             let mut lock = [0; 5];
 
-            assert_eq!(lock_pattern.len(), 6);
-
-            for line in &lock_pattern[..5] {
+            for line in lock_pattern {
                 for (i, c) in line.iter().enumerate() {
                     if *c == '#' {
                         lock[i] += 1;
@@ -76,13 +68,14 @@ fn parse_lock(input: &str) -> IResult<&str, Lock> {
 }
 
 fn parse_input_data(input: &str) -> IResult<&str, Problem> {
+    enum Item {
+        Key(Key),
+        Lock(Lock),
+    }
     map(
         separated_list0(
             tuple((line_ending, line_ending)),
-            alt((
-                map(parse_key, |key| (0, key)),
-                map(parse_lock, |lock| (1, lock)),
-            )),
+            alt((map(parse_key, Item::Key), map(parse_lock, Item::Lock))),
         ),
         |data| {
             let mut keys = Vec::new();
@@ -90,9 +83,8 @@ fn parse_input_data(input: &str) -> IResult<&str, Problem> {
 
             for item in data {
                 match item {
-                    (0, key) => keys.push(key),
-                    (1, lock) => locks.push(lock),
-                    _ => panic!("Failed to parse input data"),
+                    Item::Key(key) => keys.push(key),
+                    Item::Lock(lock) => locks.push(lock),
                 }
             }
 
@@ -171,12 +163,6 @@ mod tests {
 #.#..
 #.#.#
 #####";
-
-    #[test]
-    fn test_day_25_utilities() {
-        let lock: Lock = [0, 5, 3, 4, 3];
-        let key: Key = [5, 0, 2, 1, 3];
-    }
 
     #[test]
     fn test_day_25_part_1() {
