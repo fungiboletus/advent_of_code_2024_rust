@@ -89,15 +89,15 @@ impl Identifier {
         (self.0 as u32 - 'a' as u32) * 26 + (self.1 as u32 - 'a' as u32)
     }
 
-    fn from_u32(value: usize) -> Self {
+    fn from_usize(value: usize) -> Self {
         let a = (value / 26 + 'a' as usize) as u8 as char;
         let b = (value % 26 + 'a' as usize) as u8 as char;
         Self(a, b)
     }
 }
 
-fn build_graph(data: &[Connection]) -> UnGraph<u32, ()> {
-    UnGraph::<u32, ()>::from_edges(data.iter().map(|c| (c.0.as_u32(), c.1.as_u32())))
+fn build_graph(data: &[Connection]) -> UnGraph<(), ()> {
+    UnGraph::<(), ()>::from_edges(data.iter().map(|c| (c.0.as_u32(), c.1.as_u32())))
 }
 
 pub fn day_23_part_1(data: &str) -> i64 {
@@ -109,7 +109,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
         .node_identifiers()
         .par_bridge()
         .map(|node| {
-            let node_identifier = Identifier::from_u32(node.index());
+            let node_identifier = Identifier::from_usize(node.index());
             let node_has_t = node_identifier.0 == 't';
 
             let mut triangles_count = 0;
@@ -118,7 +118,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
             let node_neighbors_set: HashSet<NodeIndex> = node_neighbors.clone().collect();
             for neighbor in node_neighbors {
                 if neighbor > node {
-                    let neighbor_identifier = Identifier::from_u32(neighbor.index());
+                    let neighbor_identifier = Identifier::from_usize(neighbor.index());
                     let neighbor_has_t = neighbor_identifier.0 == 't';
                     let neighbor_neighbors_set: HashSet<NodeIndex> =
                         graph.neighbors(neighbor).collect();
@@ -126,7 +126,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
                     for common_neighbor in common_neighbors {
                         if *common_neighbor > neighbor {
                             let common_neighbor_identifier =
-                                Identifier::from_u32(common_neighbor.index());
+                                Identifier::from_usize(common_neighbor.index());
                             let common_neighbor_has_t = common_neighbor_identifier.0 == 't';
                             if node_has_t || neighbor_has_t || common_neighbor_has_t {
                                 triangles_count += 1;
@@ -142,7 +142,7 @@ pub fn day_23_part_1(data: &str) -> i64 {
 }
 
 fn bron_kerbosch_with_pivot_recursive(
-    graph: &UnGraph<u32, ()>,
+    graph: &UnGraph<(), ()>,
     current_clique: &mut HashSet<NodeIndex>,
     candidate_nodes: HashSet<NodeIndex>,
     excluded_nodes: HashSet<NodeIndex>,
@@ -198,7 +198,7 @@ fn bron_kerbosch_with_pivot_recursive(
     }
 }
 
-fn find_all_maximal_cliques(graph: &UnGraph<u32, ()>) -> Vec<HashSet<NodeIndex>> {
+fn find_all_maximal_cliques(graph: &UnGraph<(), ()>) -> Vec<HashSet<NodeIndex>> {
     let mut maximal_cliques: Vec<HashSet<NodeIndex>> = Vec::new();
     let mut current_clique = HashSet::new();
     let candidate_nodes: HashSet<NodeIndex> = graph.node_indices().collect();
@@ -215,7 +215,7 @@ fn find_all_maximal_cliques(graph: &UnGraph<u32, ()>) -> Vec<HashSet<NodeIndex>>
     maximal_cliques
 }
 
-fn find_maximal_clique(graph: &UnGraph<u32, ()>) -> Option<HashSet<NodeIndex>> {
+fn find_maximal_clique(graph: &UnGraph<(), ()>) -> Option<HashSet<NodeIndex>> {
     let maximal_cliques = find_all_maximal_cliques(graph);
     maximal_cliques
         .iter()
@@ -232,7 +232,7 @@ pub fn day_23_part_2(data: &str) -> String {
 
     maximal_clique
         .iter()
-        .map(|node| Identifier::from_u32(node.index()))
+        .map(|node| Identifier::from_usize(node.index()))
         .sorted_unstable()
         .map(|identifier| identifier.to_string())
         .join(",")
